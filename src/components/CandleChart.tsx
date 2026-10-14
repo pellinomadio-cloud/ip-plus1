@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Candle, QuickTrade } from '../types';
-import { generateInitialCandles, updateCandlesWithPrice } from '../utils/candleGenerator';
+import { 
+  getPersistentCandles, 
+  updatePersistentCandlesWithPrice 
+} from '../utils/candleGenerator';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -34,8 +37,8 @@ export const CandleChart: React.FC<CandleChartProps> = ({
   isFullScreen = false,
   onToggleFullScreen
 }) => {
-  // Start with 40 historical candles so the user can scroll back right away
-  const [candles, setCandles] = useState<Candle[]>(() => generateInitialCandles(currentPrice, 42));
+  // Load persistent historical candles for active symbol
+  const [candles, setCandles] = useState<Candle[]>(() => getPersistentCandles(symbol, currentPrice));
   const [currentTimeStr, setCurrentTimeStr] = useState<string>('');
   const [scrollOffset, setScrollOffset] = useState<number>(0); // 0 = viewing latest live candles, > 0 = scrolled into history
   const [selectedTrade, setSelectedTrade] = useState<QuickTrade | null>(null);
@@ -70,55 +73,30 @@ export const CandleChart: React.FC<CandleChartProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // When symbol changes, reset candles and scroll
+  // When symbol changes, load persistent candles for the target asset
   useEffect(() => {
     if (prevSymbolRef.current !== symbol) {
-      setCandles(generateInitialCandles(currentPrice, 42));
+      const loaded = getPersistentCandles(symbol, currentPrice);
+      setCandles(loaded);
       setScrollOffset(0);
       setZoomLevel(1.0);
       prevSymbolRef.current = symbol;
     }
   }, [symbol, currentPrice]);
 
-  // When price ticks, update candles.
+  // When price ticks, update persistent candles
   useEffect(() => {
-    setCandles(prev => updateCandlesWithPrice(prev, currentPrice));
-  }, [currentPrice]);
+    setCandles(prev => updatePersistentCandlesWithPrice(symbol, currentPrice, prev));
+  }, [symbol, currentPrice]);
 
-  // Forward moving candle generator: every 12 seconds, ensure a new candle steps forward
+  // Forward moving candle generator: every 10 seconds, advance live candles persistently
   useEffect(() => {
     const stepTimer = setInterval(() => {
-      setCandles(prev => {
-        if (prev.length === 0) return prev;
-        const last = prev[prev.length - 1];
-        const now = Date.now();
-        const date = new Date(now);
-        const timeLabel = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-        
-        // Random micro tick
-        const isForex = currentPrice < 2;
-        const wiggle = (Math.random() - 0.48) * (isForex ? 0.0001 : currentPrice * 0.0005);
-        const close = Number((last.close + wiggle).toFixed(isForex ? 5 : 2));
-
-        const nextCandle: Candle = {
-          time: now,
-          timeLabel,
-          open: last.close,
-          high: Math.max(last.close, close),
-          low: Math.min(last.close, close),
-          close: close,
-          volume: Math.floor(15 + Math.random() * 40)
-        };
-
-        // Keep last 80 candles
-        const updated = [...prev, nextCandle];
-        if (updated.length > 80) return updated.slice(updated.length - 80);
-        return updated;
-      });
-    }, 12000);
+      setCandles(prev => updatePersistentCandlesWithPrice(symbol, currentPrice, prev));
+    }, 10000);
 
     return () => clearInterval(stepTimer);
-  }, [currentPrice]);
+  }, [symbol, currentPrice]);
 
   // Zoom handlers
   const handleZoomIn = () => {

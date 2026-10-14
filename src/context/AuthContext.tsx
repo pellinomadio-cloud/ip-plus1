@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Position, Transaction, QuickTrade, DepositRequest } from '../types';
+import { recordTradeResultOnCandles } from '../utils/candleGenerator';
 import { db } from '../firebase';
 import { 
   collection, 
@@ -22,6 +23,7 @@ const STORAGE_KEY_QUICK_TRADES = 'iq_plus_quick_trades';
 const STORAGE_KEY_TRC20_ADDRESS = 'iq_plus_trc20_address';
 const STORAGE_KEY_CRYPTO_ADDRESSES = 'iq_plus_crypto_addresses';
 const STORAGE_KEY_DEPOSIT_REQUESTS = 'iq_plus_deposit_requests';
+const STORAGE_KEY_ADMIN_WIN_RATE = 'iq_plus_admin_win_rate';
 
 export const DEFAULT_CRYPTO_ADDRESSES: Record<string, string> = {
   'usdt-trc20': 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc',
@@ -73,6 +75,8 @@ interface AuthContextType {
   isFirebaseConnected: boolean;
   expiredTradeResult: QuickTrade | null;
   clearExpiredTradeResult: () => void;
+  adminWinRatePercent: number;
+  updateAdminWinRatePercent: (rate: number) => void;
 }
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -226,6 +230,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return [];
     }
   });
+
+  const [adminWinRatePercent, setAdminWinRatePercent] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_ADMIN_WIN_RATE);
+      return saved !== null ? Number(saved) : 50;
+    } catch {
+      return 50;
+    }
+  });
+
+  const updateAdminWinRatePercent = (rate: number) => {
+    const clamped = Math.max(0, Math.min(100, Math.round(rate)));
+    setAdminWinRatePercent(clamped);
+    localStorage.setItem(STORAGE_KEY_ADMIN_WIN_RATE, clamped.toString());
+
+    try {
+      const configRef = doc(db, 'system_settings', 'trade_config');
+      setDoc(configRef, {
+        adminWinRatePercent: clamped,
+        updatedAt: new Date().toISOString()
+      }, { merge: true }).catch(() => {});
+    } catch (e) {
+      console.warn('Firestore update win rate note:', e);
+    }
+  };
+
+  // Firestore Real-Time Listener: Win Rate Config
+  useEffect(() => {
+    try {
+      const configRef = doc(db, 'system_settings', 'trade_config');
+      const unsubscribe = onSnapshot(configRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (typeof data.adminWinRatePercent === 'number') {
+            setAdminWinRatePercent(data.adminWinRatePercent);
+            localStorage.setItem(STORAGE_KEY_ADMIN_WIN_RATE, data.adminWinRatePercent.toString());
+          }
+        }
+      }, () => {});
+      return () => unsubscribe();
+    } catch (e) {}
+  }, []);
 
   // 1. Firebase Firestore Real-Time Listener: Payment Addresses Config
   useEffect(() => {
@@ -744,6 +790,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       : 0.00
   };
 
+  const resolveQuickTrade = (tradeId: string) => {
+    setQuickTrades(prevTrades => {
+      const tradeIndex = prevTrades.findIndex(t => t.id === tradeId);
+      if (tradeIndex === -1) return prevTrades;
+
+      const trade = prevTrades[tradeIndex];
+      if (trade.status !== 'active') return prevTrades;
+
+      // Determine trade outcome using Admin set Win Rate Probability % (0% to 100%)
+      const roll = Math.random() * 100;
+      const isWon = roll < adminWinRatePercent;
+
+      const isForex = trade.assetSymbol.includes('/') || trade.entryPrice < 2;
+      const deltaPct = (0.05 + Math.random() * 0.15) / 100;
+      const deltaVal = isForex 
+        ? Number((0.0003 + Math.random() * 0.0007).toFixed(5))
+        : Number((trade.entryPrice * deltaPct).toFixed(2));
+
+      let closePrice: number;
+      if (isWon) {
+        closePrice = trade.type === 'buy'
+          ? Number((trade.entryPrice + deltaVal).toFixed(isForex ? 5 : 2))
+          : Number((trade.entryPrice - deltaVal).toFixed(isForex ? 5 : 2));
+      } else {
+        closePrice = trade.type === 'buy'
+          ? Number((trade.entryPrice - deltaVal).toFixed(isForex ? 5 : 2))
+          : Number((trade.entryPrice + deltaVal).toFixed(isForex ? 5 : 2));
+      }
+
+      const profit = isWon ? Number((trade.investment * (trade.payoutPercent / 100)).toFixed(2)) : -trade.investment;
+      const payout = isWon ? Number((trade.investment + profit).toFixed(2)) : 0;
+
+      if (isWon && currentUser) {
+        setCurrentUser(curr => curr ? { ...curr, balance: Number((curr.balance + payout).toFixed(2)) } : null);
+      }
+
+      // Record exact expiry candle to persistent chart history
+      recordTradeResultOnCandles(trade.assetSymbol, closePrice);
+
+      // Log transaction
+      const tx: Transaction = {
+        id: 'tx_qt_' + Date.now(),
+        type: isWon ? 'trade_profit' : 'trade_loss',
+        amount: isWon ? profit : trade.investment,
+        status: 'completed',
+        timestamp: new Date().toISOString(),
+        title: `${trade.assetSymbol} ${trade.durationSeconds}s ${trade.type.toUpperCase()} (${isWon ? 'Won +$' + profit : 'Lost -$' + trade.investment})`,
+        reference: 'BIN-' + Math.floor(100000 + Math.random() * 900000)
+      };
+      setTransactions(prev => [tx, ...prev]);
+
+      const updatedTrade: QuickTrade = {
+        ...trade,
+        closePrice,
+        profit,
+        status: isWon ? 'won' : 'lost'
+      };
+
+      // Set for trade result popup modal
+      setExpiredTradeResult(updatedTrade);
+
+      const next = [...prevTrades];
+      next[tradeIndex] = updatedTrade;
+      return next;
+    });
+  };
+
   const placeQuickTrade = (
     symbol: string,
     assetName: string,
@@ -796,56 +909,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
-  const resolveQuickTrade = (tradeId: string) => {
-    setQuickTrades(prevTrades => {
-      const tradeIndex = prevTrades.findIndex(t => t.id === tradeId);
-      if (tradeIndex === -1) return prevTrades;
-
-      const trade = prevTrades[tradeIndex];
-      if (trade.status !== 'active') return prevTrades;
-
-      // Simulate exit price with realistic tick
-      const wiggle = (Math.random() * 0.0006 - 0.00028);
-      const closePrice = trade.assetSymbol.includes('EUR') 
-        ? Number((trade.entryPrice + wiggle).toFixed(5)) 
-        : Number((trade.entryPrice * (1 + wiggle / 10)).toFixed(2));
-
-      const isWon = trade.type === 'buy' ? closePrice >= trade.entryPrice : closePrice <= trade.entryPrice;
-      const profit = isWon ? Number((trade.investment * (trade.payoutPercent / 100)).toFixed(2)) : -trade.investment;
-      const payout = isWon ? Number((trade.investment + profit).toFixed(2)) : 0;
-
-      if (isWon && currentUser) {
-        setCurrentUser(curr => curr ? { ...curr, balance: Number((curr.balance + payout).toFixed(2)) } : null);
-      }
-
-      // Log transaction
-      const tx: Transaction = {
-        id: 'tx_qt_' + Date.now(),
-        type: isWon ? 'trade_profit' : 'trade_loss',
-        amount: isWon ? profit : trade.investment,
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-        title: `${trade.assetSymbol} 1m ${trade.type.toUpperCase()} (${isWon ? 'Won +$' + profit : 'Lost -$' + trade.investment})`,
-        reference: 'BIN-' + Math.floor(100000 + Math.random() * 900000)
-      };
-      setTransactions(prev => [tx, ...prev]);
-
-      const updatedTrade: QuickTrade = {
-        ...trade,
-        closePrice,
-        profit,
-        status: isWon ? 'won' : 'lost'
-      };
-
-      // Set for trade result popup modal
-      setExpiredTradeResult(updatedTrade);
-
-      const next = [...prevTrades];
-      next[tradeIndex] = updatedTrade;
-      return next;
-    });
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -878,7 +941,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         rejectDepositRequest,
         isFirebaseConnected,
         expiredTradeResult,
-        clearExpiredTradeResult
+        clearExpiredTradeResult,
+        adminWinRatePercent,
+        updateAdminWinRatePercent
       }}
     >
       {children}

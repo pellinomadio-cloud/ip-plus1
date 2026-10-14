@@ -1,6 +1,27 @@
 import { Candle } from '../types';
 
-export function generateInitialCandles(basePrice: number, count: number = 32): Candle[] {
+const STORAGE_KEY_CANDLE_HISTORY = 'iq_plus_persistent_candles';
+
+type SymbolCandleStore = Record<string, Candle[]>;
+
+function getStoredCandleStore(): SymbolCandleStore {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_CANDLE_HISTORY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveStoredCandleStore(store: SymbolCandleStore): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_CANDLE_HISTORY, JSON.stringify(store));
+  } catch (e) {
+    console.warn('Failed to save persistent candles:', e);
+  }
+}
+
+export function generateInitialCandles(basePrice: number, count: number = 42): Candle[] {
   const candles: Candle[] = [];
   const now = Date.now();
   const stepMs = 60 * 1000; // 1-minute candles
@@ -8,7 +29,6 @@ export function generateInitialCandles(basePrice: number, count: number = 32): C
   const isForex = basePrice < 2;
   const volatility = isForex ? 0.00015 : basePrice * 0.0008;
 
-  // Start with a price slightly offset
   let currentClose = isForex ? basePrice - 0.0014 : basePrice * 0.985;
 
   for (let i = count; i >= 0; i--) {
@@ -19,7 +39,6 @@ export function generateInitialCandles(basePrice: number, count: number = 32): C
     const timeLabel = `${hours}:${minutes}`;
 
     const open = currentClose;
-    // Organic wave variation to give authentic green up and red down candles
     const wave = Math.sin((count - i) * 0.45);
     const delta = (wave * 0.7 + (Math.random() - 0.48)) * volatility * 1.8;
 
@@ -49,28 +68,107 @@ export function generateInitialCandles(basePrice: number, count: number = 32): C
   return candles;
 }
 
-export function updateCandlesWithPrice(prevCandles: Candle[], newPrice: number): Candle[] {
-  if (prevCandles.length === 0) return generateInitialCandles(newPrice);
+/**
+ * Retrieves persistent candles for a given market asset symbol.
+ * If none exist, generates initial candles and persists them.
+ * If stored candles exist, bridges any time gap so candles move forward seamlessly.
+ */
+export function getPersistentCandles(symbol: string, currentPrice: number): Candle[] {
+  const store = getStoredCandleStore();
+  const existing = store[symbol];
 
-  const updated = [...prevCandles];
-  const lastIndex = updated.length - 1;
-  const last = updated[lastIndex];
+  if (!existing || existing.length === 0) {
+    const fresh = generateInitialCandles(currentPrice, 42);
+    store[symbol] = fresh;
+    saveStoredCandleStore(store);
+    return fresh;
+  }
+
+  const now = Date.now();
+  const lastCandle = existing[existing.length - 1];
+  const elapsedMs = now - lastCandle.time;
+  const missedMinutes = Math.floor(elapsedMs / 60000);
+
+  // Catch up missed minutes if app was closed or market was unselected
+  if (missedMinutes > 0) {
+    const isForex = currentPrice < 2;
+    const precision = isForex ? 5 : 2;
+    const updated = [...existing];
+    let prevClose = lastCandle.close;
+
+    // Bridge up to max 25 catchup candles
+    const catchupSteps = Math.min(missedMinutes, 25);
+    const startOffsetMinutes = catchupSteps;
+
+    for (let i = startOffsetMinutes; i > 0; i--) {
+      const stepTime = now - i * 60000;
+      const date = new Date(stepTime);
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+
+      const open = prevClose;
+      const progress = (startOffsetMinutes - i + 1) / startOffsetMinutes;
+      const targetClose = open + (currentPrice - open) * progress;
+      const wiggle = (Math.random() - 0.48) * (isForex ? 0.0001 : currentPrice * 0.0004);
+      const close = Number((targetClose + wiggle).toFixed(precision));
+
+      const high = Number(Math.max(open, close, open + (isForex ? 0.0001 : currentPrice * 0.0003)).toFixed(precision));
+      const low = Number(Math.min(open, close, open - (isForex ? 0.0001 : currentPrice * 0.0003)).toFixed(precision));
+
+      updated.push({
+        time: stepTime,
+        timeLabel: `${hours}:${minutes}`,
+        open,
+        high,
+        low,
+        close,
+        volume: Math.floor(20 + Math.random() * 50)
+      });
+
+      prevClose = close;
+    }
+
+    // Keep last 90 candles
+    const trimmed = updated.slice(Math.max(0, updated.length - 90));
+    store[symbol] = trimmed;
+    saveStoredCandleStore(store);
+    return trimmed;
+  }
+
+  return existing;
+}
+
+/**
+ * Updates persistent candles with a new tick price for a symbol.
+ */
+export function updatePersistentCandlesWithPrice(
+  symbol: string,
+  newPrice: number,
+  existingCandles?: Candle[]
+): Candle[] {
+  const store = getStoredCandleStore();
+  const currentList = existingCandles && existingCandles.length > 0 
+    ? existingCandles 
+    : (store[symbol] || getPersistentCandles(symbol, newPrice));
+
   const isForex = newPrice < 2;
   const precision = isForex ? 5 : 2;
+
+  const updated = [...currentList];
+  const lastIndex = updated.length - 1;
+  const last = updated[lastIndex];
 
   const now = Date.now();
   const candleAge = now - last.time;
 
-  // If the active candle has exceeded 60 seconds (or 15 ticks), create a new candle starting exactly at the previous close
-  if (candleAge > 60000 || last.volume > 24) {
+  if (candleAge > 60000 || last.volume > 28) {
     const date = new Date(now);
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    const timeLabel = `${hours}:${minutes}`;
 
     const newCandle: Candle = {
       time: now,
-      timeLabel,
+      timeLabel: `${hours}:${minutes}`,
       open: last.close,
       high: Number(Math.max(last.close, newPrice).toFixed(precision)),
       low: Number(Math.min(last.close, newPrice).toFixed(precision)),
@@ -78,11 +176,12 @@ export function updateCandlesWithPrice(prevCandles: Candle[], newPrice: number):
       volume: 1
     };
 
-    // Keep fixed window length
-    return [...updated.slice(1), newCandle];
+    const nextList = [...updated, newCandle].slice(-90);
+    store[symbol] = nextList;
+    saveStoredCandleStore(store);
+    return nextList;
   }
 
-  // Otherwise update current active candle
   const updatedLast: Candle = {
     ...last,
     close: Number(newPrice.toFixed(precision)),
@@ -92,5 +191,35 @@ export function updateCandlesWithPrice(prevCandles: Candle[], newPrice: number):
   };
 
   updated[lastIndex] = updatedLast;
+  store[symbol] = updated;
+  saveStoredCandleStore(store);
   return updated;
+}
+
+/**
+ * Records a completed trade outcome directly onto the persistent candle store for an asset.
+ */
+export function recordTradeResultOnCandles(symbol: string, closePrice: number): void {
+  const store = getStoredCandleStore();
+  const list = store[symbol] || getPersistentCandles(symbol, closePrice);
+
+  if (list.length === 0) return;
+
+  const isForex = closePrice < 2;
+  const precision = isForex ? 5 : 2;
+  const updated = [...list];
+  const lastIndex = updated.length - 1;
+  const last = updated[lastIndex];
+
+  const updatedActive: Candle = {
+    ...last,
+    close: Number(closePrice.toFixed(precision)),
+    high: Number(Math.max(last.high, closePrice).toFixed(precision)),
+    low: Number(Math.min(last.low, closePrice).toFixed(precision)),
+    volume: last.volume + 2
+  };
+
+  updated[lastIndex] = updatedActive;
+  store[symbol] = updated;
+  saveStoredCandleStore(store);
 }

