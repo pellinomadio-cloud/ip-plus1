@@ -1,11 +1,23 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, Mail, User, ShieldCheck, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { 
+  Eye, 
+  EyeOff, 
+  Lock, 
+  Mail, 
+  User, 
+  ArrowRight, 
+  Sparkles, 
+  CheckCircle2, 
+  ChevronDown, 
+  Search
+} from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { useAuth } from '../context/AuthContext';
+import { COUNTRIES, Country } from '../data/countries';
 
 export const AuthScreen: React.FC = () => {
-  const { register, login, quickDemoLogin } = useAuth();
-  const [mode, setMode] = useState<'register' | 'login'>('register'); // Default to register as requested
+  const { register, login } = useAuth();
+  const [mode, setMode] = useState<'register' | 'login'>('register');
 
   // Form states
   const [name, setName] = useState('');
@@ -16,6 +28,18 @@ export const AuthScreen: React.FC = () => {
   const [agreedTerms, setAgreedTerms] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Country Selection States
+  const [selectedCountry, setSelectedCountry] = useState<Country>(COUNTRIES[0]); // Default to Nigeria 🇳🇬
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+
+  const filteredCountries = COUNTRIES.filter(c => 
+    c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+    c.dialCode.includes(countrySearch) ||
+    c.code.toLowerCase().includes(countrySearch.toLowerCase())
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +69,8 @@ export const AuthScreen: React.FC = () => {
 
       setIsLoading(true);
       setTimeout(() => {
-        const res = register(name, email, password);
+        const fullPhone = phoneNumber ? `${selectedCountry.dialCode} ${phoneNumber}` : '';
+        const res = register(name, email, password, selectedCountry.name, selectedCountry.code, fullPhone);
         setIsLoading(false);
         if (!res.success) {
           setError(res.message || 'Registration failed.');
@@ -79,21 +104,21 @@ export const AuthScreen: React.FC = () => {
       <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Main Container */}
-      <div className="w-full max-w-md bg-[#121824]/90 backdrop-blur-xl border border-slate-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10">
+      <div className="w-full max-w-md bg-[#121824]/90 backdrop-blur-xl border border-slate-800/90 rounded-3xl p-5 sm:p-8 shadow-2xl relative z-10">
         {/* Brand header */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-5">
           <div className="flex justify-center mb-2">
             <BrandLogo size="lg" showTagline={true} />
           </div>
           <p className="text-xs text-slate-400 mt-2">
             {mode === 'register' 
-              ? 'Open your institutional-grade trading account in seconds' 
+              ? 'Create your secure account to access live global trading markets' 
               : 'Sign in to access your trading portfolio & live markets'}
           </p>
         </div>
 
         {/* Tab switch between Register and Login */}
-        <div className="grid grid-cols-2 p-1 bg-[#0B0F17] rounded-xl border border-slate-800/80 mb-6">
+        <div className="grid grid-cols-2 p-1 bg-[#0B0F17] rounded-xl border border-slate-800/80 mb-5">
           <button
             type="button"
             onClick={() => {
@@ -144,22 +169,99 @@ export const AuthScreen: React.FC = () => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3.5">
           {mode === 'register' && (
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Alex Morgan"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 bg-[#0B0F17] border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/60 focus:ring-1 focus:ring-amber-400/40 transition-all"
-                />
+            <>
+              {/* Full Name */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Alex Morgan"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2.5 bg-[#0B0F17] border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/60 focus:ring-1 focus:ring-amber-400/40 transition-all"
+                  />
+                </div>
               </div>
-            </div>
+
+              {/* Country Selection */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-medium text-slate-300">Country of Residence</label>
+                  <span className="text-[10px] text-amber-400/90 font-medium">Select your country</span>
+                </div>
+                
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                    className="w-full pl-3.5 pr-3 py-2.5 bg-[#0B0F17] border border-slate-800 hover:border-slate-700 rounded-xl text-sm text-white flex items-center justify-between transition-all focus:outline-none focus:border-amber-400/60"
+                  >
+                    <div className="flex items-center gap-2.5 truncate">
+                      <span className="text-lg leading-none">{selectedCountry.flag}</span>
+                      <span className="font-semibold text-slate-100">{selectedCountry.name}</span>
+                      <span className="text-xs text-slate-500 font-mono">({selectedCountry.dialCode})</span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isCountryDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Country Selector Dropdown */}
+                  {isCountryDropdownOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40 bg-black/40" 
+                        onClick={() => setIsCountryDropdownOpen(false)} 
+                      />
+                      <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#0D131F] border border-slate-700/80 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                        {/* Search in Dropdown */}
+                        <div className="p-2 border-b border-slate-800">
+                          <div className="relative">
+                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                            <input
+                              type="text"
+                              placeholder="Search country or code..."
+                              value={countrySearch}
+                              onChange={(e) => setCountrySearch(e.target.value)}
+                              className="w-full pl-8 pr-3 py-1.5 bg-[#141B27] border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                              autoFocus
+                            />
+                          </div>
+                        </div>
+
+                        {/* Country List */}
+                        <div className="max-h-52 overflow-y-auto divide-y divide-slate-800/40 no-scrollbar">
+                          {filteredCountries.map((country) => (
+                            <button
+                              key={country.code}
+                              type="button"
+                              onClick={() => {
+                                setSelectedCountry(country);
+                                setIsCountryDropdownOpen(false);
+                                setCountrySearch('');
+                              }}
+                              className={`w-full px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800/60 transition-colors text-left ${
+                                selectedCountry.code === country.code ? 'bg-amber-400/10 text-amber-300 font-bold' : 'text-slate-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="text-base">{country.flag}</span>
+                                <span className="truncate">{country.name}</span>
+                              </div>
+                              <span className="text-[11px] font-mono text-slate-400 ml-2 shrink-0">{country.dialCode}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </>
           )}
 
+          {/* Email Address */}
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
             <div className="relative">
@@ -175,6 +277,7 @@ export const AuthScreen: React.FC = () => {
             </div>
           </div>
 
+          {/* Password */}
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1">Password</label>
             <div className="relative">
@@ -245,8 +348,6 @@ export const AuthScreen: React.FC = () => {
             )}
           </button>
         </form>
-
-
 
         {/* Security badges */}
         <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-center gap-4 text-[10px] text-slate-500">

@@ -38,13 +38,15 @@ export const DEFAULT_CRYPTO_ADDRESSES: Record<string, string> = {
 interface AuthContextType {
   currentUser: User | null;
   isAuthenticated: boolean;
-  register: (name: string, email: string, password: string) => { success: boolean; message?: string };
+  register: (name: string, email: string, password: string, country?: string, countryCode?: string, phoneNumber?: string) => { success: boolean; message?: string };
   login: (email: string, password: string) => { success: boolean; message?: string };
   quickDemoLogin: () => void;
   logout: () => void;
+  updateUserCountry: (country: string, countryCode?: string) => void;
   depositFunds: (amount: number, method: string) => void;
-  withdrawFunds: (amount: number, method: string, address: string) => { success: boolean; message: string };
+  withdrawFunds: (amount: number, method: string, address: string, details?: Transaction['destinationDetails']) => { success: boolean; message: string };
   positions: Position[];
+
   closedPositions: Position[];
   transactions: Transaction[];
   openTrade: (symbol: string, assetName: string, type: 'buy' | 'sell', margin: number, leverage: number, currentPrice: number, takeProfit?: number, stopLoss?: number) => { success: boolean; message: string };
@@ -503,7 +505,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [quickTrades]);
 
   // Register function: Balance is strictly initialized to 0.00
-  const register = (name: string, email: string, password: string) => {
+  const register = (
+    name: string, 
+    email: string, 
+    password: string, 
+    country: string = 'Nigeria', 
+    countryCode: string = 'NG', 
+    phoneNumber: string = ''
+  ) => {
     const cleanEmail = email.trim().toLowerCase();
     if (!name.trim()) return { success: false, message: 'Please enter your full name.' };
     if (!cleanEmail || !cleanEmail.includes('@')) return { success: false, message: 'Please provide a valid email address.' };
@@ -526,12 +535,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currency: 'USD',
         registeredAt: new Date().toISOString(),
         isKycVerified: true,
-        accountNumber: randomAcc
+        accountNumber: randomAcc,
+        country: country || 'Nigeria',
+        countryCode: countryCode || 'NG',
+        phoneNumber: phoneNumber || ''
       };
 
       usersDb.push({ ...newUser, password });
       localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(usersDb));
       setCurrentUser(newUser);
+
 
       // Save user to Cloud Firestore
       try {
@@ -585,7 +598,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           currency: matched.currency || 'USD',
           registeredAt: matched.registeredAt || new Date().toISOString(),
           isKycVerified: matched.isKycVerified ?? true,
-          accountNumber: matched.accountNumber || 'IQ-883192'
+          accountNumber: matched.accountNumber || 'IQ-883192',
+          country: matched.country || 'Nigeria',
+          countryCode: matched.countryCode || 'NG',
+          phoneNumber: matched.phoneNumber || ''
         };
         setCurrentUser(userSession);
         return { success: true };
@@ -605,7 +621,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 currency: uData.currency || 'USD',
                 registeredAt: uData.registeredAt || new Date().toISOString(),
                 isKycVerified: uData.isKycVerified ?? true,
-                accountNumber: uData.accountNumber || 'IQ-883192'
+                accountNumber: uData.accountNumber || 'IQ-883192',
+                country: uData.country || 'Nigeria',
+                countryCode: uData.countryCode || 'NG',
+                phoneNumber: uData.phoneNumber || ''
               };
               setCurrentUser(cloudUser);
               // Cache locally
@@ -624,7 +643,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const quickDemoLogin = () => {
-    // Quick Demo account for instant inspection
+    // Quick Demo account with Nigerian country preset
     const demoUser: User = {
       id: 'usr_demo_01',
       name: 'Alex Vance',
@@ -633,10 +652,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       currency: 'USD',
       registeredAt: new Date().toISOString(),
       isKycVerified: true,
-      accountNumber: 'IQ-724910'
+      accountNumber: 'IQ-724910',
+      country: 'Nigeria',
+      countryCode: 'NG'
     };
     setCurrentUser(demoUser);
   };
+
+  const updateUserCountry = (country: string, countryCode?: string) => {
+    if (!currentUser) return;
+    const code = countryCode || (country === 'Nigeria' ? 'NG' : 'US');
+    const updated = { ...currentUser, country, countryCode: code };
+    setCurrentUser(updated);
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
+    try {
+      const userRef = doc(db, 'users', currentUser.id);
+      updateDoc(userRef, { country, countryCode: code }).catch(() => {});
+    } catch {}
+  };
+
 
   const logout = () => {
     setCurrentUser(null);
@@ -661,7 +695,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTransactions(prev => [newTx, ...prev]);
   };
 
-  const withdrawFunds = (amount: number, method: string, address: string) => {
+  const withdrawFunds = (
+    amount: number, 
+    method: string, 
+    address: string, 
+    details?: Transaction['destinationDetails']
+  ) => {
     if (!currentUser) return { success: false, message: 'Please log in to withdraw.' };
     if (amount <= 0) return { success: false, message: 'Withdrawal amount must be greater than zero.' };
     if (currentUser.balance < amount) {
@@ -674,23 +713,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newBal = Number((currentUser.balance - amount).toFixed(2));
     setCurrentUser({ ...currentUser, balance: newBal });
 
+    let txTitle = `Withdrawal to ${address.slice(0, 10)}... (${method})`;
+    if (details?.type === 'nigerian_bank' && details.bankName) {
+      const ngnStr = details.ngnAmount ? ` - ₦${details.ngnAmount.toLocaleString()} NGN` : '';
+      txTitle = `${details.bankName} (${details.accountNumber || address})${ngnStr}`;
+    } else if (details?.type === 'crypto') {
+      txTitle = `${details.cryptoNetwork || method} to ${address.slice(0, 6)}...${address.slice(-4)}`;
+    }
+
     const newTx: Transaction = {
       id: 'tx_wdr_' + Date.now(),
       type: 'withdrawal',
       amount,
       status: 'completed',
       timestamp: new Date().toISOString(),
-      title: `Withdrawal to ${address.slice(0, 8)}... (${method})`,
+      title: txTitle,
       reference: 'WDR-' + Math.floor(100000 + Math.random() * 900000),
-      method
+      method,
+      destinationDetails: details
     };
     setTransactions(prev => [newTx, ...prev]);
 
     return {
       success: true,
-      message: `Withdrawal request for $${amount.toFixed(2)} processed successfully.`
+      message: details?.type === 'nigerian_bank'
+        ? `Withdrawal of $${amount.toFixed(2)} (₦${(details.ngnAmount || 0).toLocaleString()} NGN) to ${details.bankName} account ${details.accountNumber} processed successfully.`
+        : `Withdrawal request for $${amount.toFixed(2)} to ${address.slice(0, 8)}... processed successfully.`
     };
   };
+
 
   const openTrade = (
     symbol: string,
@@ -917,8 +968,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         quickDemoLogin,
         logout,
+        updateUserCountry,
         depositFunds,
         withdrawFunds,
+
         positions,
         closedPositions,
         transactions,

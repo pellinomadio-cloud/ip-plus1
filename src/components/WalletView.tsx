@@ -101,8 +101,16 @@ export const WalletView: React.FC<WalletViewProps> = ({ onOpenDeposit, onOpenWit
                     {tx.type === 'deposit' ? <ArrowDownToLine className="w-4 h-4" /> : <ArrowUpToLine className="w-4 h-4" />}
                   </div>
                   <div>
-                    <h5 className="font-bold text-white">{tx.title}</h5>
-                    <p className="text-[10px] text-slate-400">{new Date(tx.timestamp).toLocaleString()}</p>
+                    <h5 className="font-bold text-white flex items-center gap-1.5">
+                      {tx.destinationDetails?.type === 'nigerian_bank' && <span>🇳🇬</span>}
+                      {tx.title}
+                    </h5>
+                    <p className="text-[10px] text-slate-400 flex items-center gap-2">
+                      <span>{new Date(tx.timestamp).toLocaleString()}</span>
+                      {tx.destinationDetails?.accountNumber && (
+                        <span className="font-mono text-slate-500">Acc: {tx.destinationDetails.accountNumber}</span>
+                      )}
+                    </p>
                   </div>
                 </div>
 
@@ -115,9 +123,15 @@ export const WalletView: React.FC<WalletViewProps> = ({ onOpenDeposit, onOpenWit
                     {tx.type === 'deposit' || tx.type === 'trade_profit' ? '+' : '-'}
                     {formatCurrency(tx.amount)}
                   </div>
+                  {tx.destinationDetails?.ngnAmount && (
+                    <span className="text-[10px] font-mono font-bold text-emerald-400/90 block">
+                      ≈ ₦{tx.destinationDetails.ngnAmount.toLocaleString()} NGN
+                    </span>
+                  )}
                   <span className="text-[10px] text-slate-500 uppercase">{tx.status}</span>
                 </div>
               </div>
+
             ))}
           </div>
         )}

@@ -12,18 +12,23 @@ import {
   ChevronRight,
   ShieldAlert,
   X,
-  KeyRound
+  KeyRound,
+  Globe,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../data/marketData';
+import { COUNTRIES } from '../data/countries';
 import { AdminDashboard } from './AdminDashboard';
+
 
 interface SettingsViewProps {
   onOpenAdminDashboard?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenAdminDashboard }) => {
-  const { currentUser, logout, depositFunds } = useAuth();
+  const { currentUser, logout, depositFunds, updateUserCountry } = useAuth();
+
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [resetNotice, setResetNotice] = useState(false);
@@ -78,11 +83,42 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenAdminDashboard
           </div>
         </div>
 
-        <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
-          <span className="text-slate-400">Account Number:</span>
-          <span className="font-mono font-bold text-amber-400">{currentUser?.accountNumber || 'IQ-881230'}</span>
+        <div className="pt-3 border-t border-slate-800/80 space-y-2.5 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Account Number:</span>
+            <span className="font-mono font-bold text-amber-400">{currentUser?.accountNumber || 'IQ-881230'}</span>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800/60">
+            <span className="text-slate-400 flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5 text-amber-400" />
+              Country of Residence:
+            </span>
+            <select
+              value={currentUser?.country || 'Nigeria'}
+              onChange={(e) => {
+                const c = COUNTRIES.find(cntry => cntry.name === e.target.value);
+                updateUserCountry(e.target.value, c?.code);
+              }}
+              className="bg-[#0B0F17] border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-medium focus:outline-none focus:border-amber-400 cursor-pointer"
+            >
+              {COUNTRIES.map((cntry) => (
+                <option key={cntry.code} value={cntry.name}>
+                  {cntry.flag} {cntry.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {(currentUser?.country === 'Nigeria' || !currentUser?.country) && (
+            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
+              <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Nigerian Local Banking & Fintech Withdrawals (OPay, PalmPay, Kuda, Moniepoint, Paga, etc.) active.</span>
+            </div>
+          )}
         </div>
       </div>
+
 
       {/* Security & Preferences */}
       <div className="p-4 rounded-2xl bg-[#141B27] border border-slate-800 space-y-3">

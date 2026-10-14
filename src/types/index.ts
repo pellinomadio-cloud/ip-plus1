@@ -7,7 +7,11 @@ export interface User {
   registeredAt: string;
   isKycVerified: boolean;
   accountNumber: string;
+  country?: string;
+  countryCode?: string;
+  phoneNumber?: string;
 }
+
 
 export type AssetCategory = 'all' | 'crypto' | 'commodities' | 'forex' | 'indices';
 
@@ -53,7 +57,18 @@ export interface Transaction {
   title: string;
   reference: string;
   method?: string;
+  destinationDetails?: {
+    type: 'crypto' | 'nigerian_bank' | 'international_bank';
+    bankName?: string;
+    accountNumber?: string;
+    accountName?: string;
+    cryptoNetwork?: string;
+    walletAddress?: string;
+    ngnAmount?: number;
+    exchangeRate?: number;
+  };
 }
+
 
 export interface Candle {
   time: number;
