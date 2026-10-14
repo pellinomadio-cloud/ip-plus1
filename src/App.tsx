@@ -25,16 +25,22 @@ import { Smartphone, Monitor, ShieldCheck, Sparkles } from 'lucide-react';
 import { BrandLogo } from './components/BrandLogo';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { PriceAlertProvider, usePriceAlerts } from './context/PriceAlertContext';
+import { PriceAlertModal } from './components/modals/PriceAlertModal';
+import { PriceAlertBanner } from './components/PriceAlertBanner';
+
 
 function AppContent() {
   const { isAuthenticated, currentUser, expiredTradeResult, clearExpiredTradeResult } = useAuth();
   const { setSelectedAsset } = useMarket();
+  const { isAlertModalOpen, setIsAlertModalOpen } = usePriceAlerts();
 
   const [activeTab, setActiveTab] = useState<NavTab>('home');
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [desktopMode, setDesktopMode] = useState<'mobile' | 'wide'>('mobile');
+
 
   // Intercept physical/device back button presses
   // Returns the user to the main dashboard balance view ('home') from any page instead of leaving the app
@@ -239,6 +245,13 @@ function AppContent() {
         onTradeAgain={() => setActiveTab('trade')}
       />
 
+      <PriceAlertModal
+        isOpen={isAlertModalOpen}
+        onClose={() => setIsAlertModalOpen(false)}
+      />
+
+      <PriceAlertBanner />
+
       <OfflineIndicator />
     </div>
   );
@@ -248,8 +261,11 @@ export default function App() {
   return (
     <AuthProvider>
       <MarketProvider>
-        <AppContent />
+        <PriceAlertProvider>
+          <AppContent />
+        </PriceAlertProvider>
       </MarketProvider>
     </AuthProvider>
   );
 }
+

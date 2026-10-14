@@ -20,7 +20,8 @@ import {
   Minus,
   Maximize2,
   Minimize2,
-  ArrowLeft
+  ArrowLeft,
+  Bell
 } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { CandleChart } from './CandleChart';
@@ -28,6 +29,8 @@ import { TradingChat } from './TradingChat';
 import { AssetIcon } from './AssetIcon';
 import { useAuth } from '../context/AuthContext';
 import { useMarket } from '../context/MarketContext';
+import { usePriceAlerts } from '../context/PriceAlertContext';
+
 import { formatCurrency, formatNumber } from '../data/marketData';
 import { MarketAsset, QuickTrade } from '../types';
 
@@ -42,6 +45,8 @@ export const TradingTerminalPage: React.FC<TradingTerminalPageProps> = ({
 }) => {
   const { currentUser, placeQuickTrade, quickTrades } = useAuth();
   const { assets, selectedAsset, setSelectedAsset } = useMarket();
+  const { openCreateAlertForAsset } = usePriceAlerts();
+
 
   // Trading configuration states
   const [investment, setInvestment] = useState<number>(50);
@@ -222,6 +227,16 @@ export const TradingTerminalPage: React.FC<TradingTerminalPageProps> = ({
           >
             <CandlestickChart className="w-4 h-4" />
           </button>
+
+          {/* Set Price Point Alert button */}
+          <button
+            onClick={() => openCreateAlertForAsset(selectedAsset.symbol)}
+            className="p-1.5 rounded-xl border bg-[#141B27] border-slate-800/80 hover:border-amber-400/50 text-slate-300 hover:text-amber-400 transition-colors"
+            title={`Set Price Push Alert for ${selectedAsset.symbol}`}
+          >
+            <Bell className="w-4 h-4" />
+          </button>
+
 
           {/* Full Screen Chart button for clear market view */}
           <button

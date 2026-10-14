@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { User as UserIcon, LogOut, ShieldCheck, CreditCard, ChevronDown, Check } from 'lucide-react';
+import { User as UserIcon, LogOut, ShieldCheck, CreditCard, ChevronDown, Check, Bell } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { useAuth } from '../context/AuthContext';
+import { usePriceAlerts } from '../context/PriceAlertContext';
 import { formatCurrency } from '../data/marketData';
 
 interface HeaderProps {
@@ -11,6 +12,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenDeposit, onOpenWithdraw }) => {
   const { currentUser, logout, isAuthenticated } = useAuth();
+  const { activeAlertsCount, openCreateAlertForAsset } = usePriceAlerts();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   return (
@@ -18,15 +20,32 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDeposit, onOpenWithdraw })
       {/* Brand mark */}
       <BrandLogo size="md" showTagline={true} />
 
-      {/* Profile menu trigger */}
-      <div className="relative">
+      {/* Action buttons */}
+      <div className="flex items-center gap-2">
+        {/* Price Alerts Bell Button */}
         <button
-          onClick={() => setShowProfileMenu(prev => !prev)}
-          className="w-10 h-10 rounded-full border border-slate-700/80 bg-[#141B27] flex items-center justify-center text-slate-300 hover:text-amber-400 hover:border-amber-400/50 transition-all focus:outline-none focus:ring-2 focus:ring-amber-400/40"
-          aria-label="User Profile"
+          onClick={() => openCreateAlertForAsset()}
+          className="relative w-10 h-10 rounded-full border border-slate-700/80 bg-[#141B27] flex items-center justify-center text-slate-300 hover:text-amber-400 hover:border-amber-400/50 transition-all focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+          title="Price Point Push Alerts"
+          aria-label="Price Point Alerts"
         >
-          <UserIcon className="w-5 h-5" />
+          <Bell className="w-5 h-5" />
+          {activeAlertsCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 font-bold font-mono text-[10px] w-4 h-4 rounded-full flex items-center justify-center border-2 border-[#070A0F] shadow-sm">
+              {activeAlertsCount}
+            </span>
+          )}
         </button>
+
+        {/* Profile menu trigger */}
+        <div className="relative">
+          <button
+            onClick={() => setShowProfileMenu(prev => !prev)}
+            className="w-10 h-10 rounded-full border border-slate-700/80 bg-[#141B27] flex items-center justify-center text-slate-300 hover:text-amber-400 hover:border-amber-400/50 transition-all focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+            aria-label="User Profile"
+          >
+            <UserIcon className="w-5 h-5" />
+          </button>
 
         {/* Profile Dropdown */}
         {showProfileMenu && (
@@ -95,6 +114,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDeposit, onOpenWithdraw })
           </>
         )}
       </div>
-    </header>
-  );
+    </div>
+  </header>
+);
 };
+

@@ -108,3 +108,17 @@ export interface DepositRequest {
 }
 
 export type NavTab = 'home' | 'trade' | 'wallet' | 'funds_wallet' | 'history' | 'settings' | 'admin_dashboard';
+
+export interface PriceAlert {
+  id: string;
+  symbol: string;
+  assetName: string;
+  targetPrice: number;
+  condition: 'above' | 'below';
+  createdAt: number;
+  triggered: boolean;
+  triggeredAt?: number;
+  note?: string;
+  soundEnabled?: boolean;
+}
+
