@@ -36,6 +36,48 @@ function AppContent() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [desktopMode, setDesktopMode] = useState<'mobile' | 'wide'>('mobile');
 
+  // Intercept physical/device back button presses
+  // Returns the user to the main dashboard balance view ('home') from any page instead of leaving the app
+  React.useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Ensure baseline history state exists
+    if (!window.history.state || window.history.state.appState !== 'iq_trading_app') {
+      window.history.replaceState({ appState: 'iq_trading_app', tab: 'home' }, '');
+    }
+
+    // Always push a history state so back button press can be captured
+    window.history.pushState({ appState: 'iq_trading_app', tab: activeTab }, '');
+
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+
+      // 1. Close open modals or drawers if active
+      if (isWithdrawModalOpen || isTradeModalOpen || isDrawerOpen) {
+        setIsWithdrawModalOpen(false);
+        setIsTradeModalOpen(false);
+        setIsDrawerOpen(false);
+        window.history.pushState({ appState: 'iq_trading_app', tab: activeTab }, '');
+        return;
+      }
+
+      // 2. If user is on any subpage/view other than dashboard balance ('home'), return to dashboard
+      if (activeTab !== 'home') {
+        setActiveTab('home');
+        window.history.pushState({ appState: 'iq_trading_app', tab: 'home' }, '');
+        return;
+      }
+
+      // 3. If already on home dashboard balance, retain user on dashboard
+      window.history.pushState({ appState: 'iq_trading_app', tab: 'home' }, '');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isAuthenticated, activeTab, isWithdrawModalOpen, isTradeModalOpen, isDrawerOpen]);
+
   // If not authenticated, show registration/login page
   if (!isAuthenticated) {
     return <AuthScreen />;
