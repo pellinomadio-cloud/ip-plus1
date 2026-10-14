@@ -316,18 +316,37 @@ export const TradeView: React.FC<TradeViewProps> = ({ onOpenDeposit, onClose, is
             />
           </div>
 
-          {/* Quick Percentages */}
-          <div className="grid grid-cols-4 gap-1.5 mt-2">
-            {[0.25, 0.5, 0.75, 1].map(pct => (
-              <button
-                key={pct}
-                type="button"
-                onClick={() => handlePercentageMargin(pct)}
-                className="py-1 rounded bg-[#0B0F17] border border-slate-800 text-[11px] font-mono text-slate-400 hover:text-white hover:border-slate-700 transition-colors"
-              >
-                {pct * 100}%
-              </button>
-            ))}
+          {/* Quick Amounts & Percentages */}
+          <div className="space-y-1.5 mt-2">
+            <div className="grid grid-cols-4 gap-1.5">
+              {[500, 1000, 3000, 5000].map(amt => (
+                <button
+                  key={amt}
+                  type="button"
+                  onClick={() => setMargin(amt.toString())}
+                  className={`py-1 rounded border text-[11px] font-mono font-bold transition-colors ${
+                    margin === amt.toString()
+                      ? 'bg-amber-400 text-slate-950 border-amber-400'
+                      : 'bg-[#0B0F17] border-amber-500/30 text-amber-300 hover:border-amber-400/60'
+                  }`}
+                >
+                  ${amt.toLocaleString()}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-4 gap-1.5">
+              {[0.25, 0.5, 0.75, 1].map(pct => (
+                <button
+                  key={pct}
+                  type="button"
+                  onClick={() => handlePercentageMargin(pct)}
+                  className="py-1 rounded bg-[#0B0F17] border border-slate-800 text-[11px] font-mono text-slate-400 hover:text-white hover:border-slate-700 transition-colors"
+                >
+                  {pct * 100}%
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

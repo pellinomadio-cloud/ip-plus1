@@ -113,34 +113,57 @@ export const TradeModal: React.FC<TradeModalProps> = ({ isOpen, onClose, onOpenD
         )}
 
         {/* Investment & Duration Selectors */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="p-2.5 bg-[#141B27] border border-slate-800 rounded-xl">
-            <span className="text-slate-400 block text-[10px] mb-1">Investment Amount</span>
-            <div className="flex gap-1">
-              {[25, 50, 100].map(amt => (
+        <div className="space-y-2 text-xs">
+          <div className="p-2.5 bg-[#141B27] border border-slate-800 rounded-xl space-y-2">
+            <div className="flex justify-between items-center text-[11px] text-slate-400">
+              <span className="font-semibold text-slate-300">Investment Capital ($)</span>
+              <span className="font-mono text-amber-400 font-bold">${investment.toLocaleString()}</span>
+            </div>
+            
+            {/* Custom Amount Input */}
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-amber-400 font-bold">$</span>
+              <input
+                type="number"
+                min="5"
+                step="10"
+                value={investment || ''}
+                onChange={(e) => setInvestment(Math.max(0, Number(e.target.value)))}
+                className="w-full pl-7 pr-3 py-1.5 bg-[#0B0F17] border border-slate-700 rounded-lg font-mono font-bold text-white text-xs focus:outline-none focus:border-amber-400"
+                placeholder="Enter amount (e.g. 3000, 5000)"
+              />
+            </div>
+
+            {/* High Presets */}
+            <div className="flex gap-1 overflow-x-auto no-scrollbar pt-0.5">
+              {[50, 100, 500, 1000, 3000, 5000].map(amt => (
                 <button
                   key={amt}
                   type="button"
                   onClick={() => setInvestment(amt)}
-                  className={`flex-1 py-1 rounded font-mono font-bold text-xs ${
-                    investment === amt ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'
+                  className={`flex-1 py-1 px-2 rounded font-mono font-bold text-[11px] shrink-0 border transition-colors ${
+                    investment === amt 
+                      ? 'bg-amber-400 text-slate-950 border-amber-400' 
+                      : amt >= 3000 
+                        ? 'bg-[#1A2333] text-amber-300 border-amber-500/40' 
+                        : 'bg-slate-800 text-slate-300 border-slate-700'
                   }`}
                 >
-                  ${amt}
+                  ${amt.toLocaleString()}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="p-2.5 bg-[#141B27] border border-slate-800 rounded-xl">
-            <span className="text-slate-400 block text-[10px] mb-1">Expiration Time</span>
+          <div className="p-2.5 bg-[#141B27] border border-slate-800 rounded-xl flex items-center justify-between gap-2">
+            <span className="text-slate-400 text-xs font-medium">Expiration Time:</span>
             <div className="flex gap-1">
-              {[30, 60].map(s => (
+              {[30, 60, 120, 300].map(s => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setDuration(s)}
-                  className={`flex-1 py-1 rounded font-bold text-xs ${
+                  className={`px-3 py-1 rounded font-bold text-xs transition-colors ${
                     duration === s ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'
                   }`}
                 >

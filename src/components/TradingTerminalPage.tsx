@@ -371,13 +371,15 @@ export const TradingTerminalPage: React.FC<TradingTerminalPageProps> = ({
         <div className="grid grid-cols-2 gap-3">
           {/* Investment Selector */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">Investment</label>
+            <label className="block text-xs font-medium text-slate-400 mb-1">Investment Amount</label>
             <button
               type="button"
               onClick={() => setShowInvestmentPicker(prev => !prev)}
               className="w-full flex items-center justify-between p-3 rounded-xl bg-[#141B27] border border-slate-800 hover:border-slate-700 text-left transition-colors"
             >
-              <span className="font-mono font-bold text-base text-white">${investment}</span>
+              <span className="font-mono font-bold text-base text-amber-400">
+                ${investment.toLocaleString()}
+              </span>
               <ChevronDown className="w-4 h-4 text-slate-400" />
             </button>
           </div>
@@ -403,42 +405,72 @@ export const TradingTerminalPage: React.FC<TradingTerminalPageProps> = ({
 
         {/* Investment Popover Picker */}
         {showInvestmentPicker && (
-          <div className="p-3 bg-[#121824] border border-slate-800 rounded-xl space-y-2 animate-in fade-in duration-100">
+          <div className="p-3.5 bg-[#121824] border border-slate-800 rounded-xl space-y-3 animate-in fade-in duration-100">
             <div className="flex justify-between items-center text-xs text-slate-400">
-              <span>Quick Amounts</span>
+              <span className="font-bold text-white">Set Trade Amount</span>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setInvestment(prev => Math.max(5, prev - 10))}
-                  className="p-1 rounded bg-slate-800 text-white"
+                  onClick={() => setInvestment(prev => Math.max(5, prev - 100))}
+                  className="px-2 py-1 rounded bg-slate-800 text-white font-mono font-bold hover:bg-slate-700"
+                  title="Subtract $100"
                 >
-                  <Minus className="w-3.5 h-3.5" />
+                  -$100
                 </button>
-                <span className="font-mono font-bold text-white">${investment}</span>
                 <button
-                  onClick={() => setInvestment(prev => prev + 10)}
-                  className="p-1 rounded bg-slate-800 text-white"
+                  onClick={() => setInvestment(prev => prev + 100)}
+                  className="px-2 py-1 rounded bg-slate-800 text-white font-mono font-bold hover:bg-slate-700"
+                  title="Add $100"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  +$100
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-4 gap-1.5">
-              {[10, 25, 50, 100, 250, 500, 1000].map(amt => (
-                <button
-                  key={amt}
-                  onClick={() => {
-                    setInvestment(amt);
-                    setShowInvestmentPicker(false);
+
+            {/* Direct Custom Amount Input */}
+            <div>
+              <label className="block text-[11px] text-slate-400 mb-1">Enter Custom Amount ($)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono font-bold text-amber-400 text-sm">$</span>
+                <input
+                  type="number"
+                  min="5"
+                  max="100000"
+                  step="10"
+                  value={investment || ''}
+                  onChange={(e) => {
+                    const val = Math.max(0, Number(e.target.value));
+                    setInvestment(val);
                   }}
-                  className={`py-1.5 rounded-lg text-xs font-mono font-bold border transition-colors ${
-                    investment === amt
-                      ? 'bg-amber-400 text-slate-950 border-amber-400'
-                      : 'bg-[#161F2E] text-slate-300 border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  ${amt}
-                </button>
-              ))}
+                  className="w-full pl-7 pr-3 py-2 bg-[#0B0F17] border border-slate-700 rounded-xl font-mono font-bold text-sm text-white focus:outline-none focus:border-amber-400"
+                  placeholder="3000 or 5000"
+                />
+              </div>
+            </div>
+
+            {/* Quick Amount Preset Grid including high $3,000 and $5,000 buttons */}
+            <div>
+              <span className="block text-[11px] text-slate-400 mb-1.5">Preset High & Standard Amounts</span>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[50, 100, 250, 500, 1000, 2000, 3000, 5000].map(amt => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => {
+                      setInvestment(amt);
+                      setShowInvestmentPicker(false);
+                    }}
+                    className={`py-1.5 rounded-lg text-xs font-mono font-bold border transition-all ${
+                      investment === amt
+                        ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md shadow-amber-400/20'
+                        : amt >= 3000
+                          ? 'bg-[#1A2333] text-amber-300 border-amber-500/40 hover:bg-amber-400/20'
+                          : 'bg-[#161F2E] text-slate-300 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    ${amt.toLocaleString()}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -674,27 +706,44 @@ export const TradingTerminalPage: React.FC<TradingTerminalPageProps> = ({
           {/* Bottom Order Execution Panel in Full Screen Chart */}
           <div className="p-3 bg-[#0A0E17] border-t border-slate-800 space-y-2 sticky bottom-0 z-40">
             {/* Quick Investment & Duration */}
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                <span className="text-slate-400 font-medium">Invest:</span>
-                {[10, 25, 50, 100, 250, 500].map(amt => (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
+                <span className="text-slate-400 font-medium shrink-0">Invest:</span>
+                {[100, 500, 1000, 3000, 5000].map(amt => (
                   <button
                     key={amt}
                     onClick={() => setInvestment(amt)}
-                    className={`px-2.5 py-1 rounded-lg font-mono font-bold border transition-colors ${
+                    className={`px-2.5 py-1 rounded-lg font-mono font-bold border transition-all shrink-0 ${
                       investment === amt
                         ? 'bg-amber-400 text-slate-950 border-amber-400'
-                        : 'bg-[#141B27] text-slate-300 border-slate-800 hover:border-slate-700'
+                        : amt >= 3000
+                          ? 'bg-[#1A2333] text-amber-300 border-amber-500/40 hover:bg-amber-400/20'
+                          : 'bg-[#141B27] text-slate-300 border-slate-800 hover:border-slate-700'
                     }`}
                   >
-                    ${amt}
+                    ${amt.toLocaleString()}
                   </button>
                 ))}
               </div>
 
-              <div className="flex items-center gap-1 text-slate-300 font-mono text-[11px] shrink-0">
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                <span>1 min</span>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                <div className="relative flex items-center">
+                  <span className="absolute left-2 font-mono text-amber-400 font-bold text-xs">$</span>
+                  <input
+                    type="number"
+                    min="5"
+                    step="50"
+                    value={investment || ''}
+                    onChange={(e) => setInvestment(Math.max(0, Number(e.target.value)))}
+                    className="w-24 pl-5 pr-2 py-1 bg-[#141B27] border border-slate-700 rounded-lg text-xs font-mono font-bold text-white focus:outline-none focus:border-amber-400"
+                    placeholder="Custom $"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1 text-slate-300 font-mono text-[11px] shrink-0 bg-[#141B27] px-2 py-1 rounded-lg border border-slate-800">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>1 min</span>
+                </div>
               </div>
             </div>
 
@@ -709,7 +758,7 @@ export const TradingTerminalPage: React.FC<TradingTerminalPageProps> = ({
                 </div>
                 <div className="text-right">
                   <div className="text-base font-black tracking-wide">SELL</div>
-                  <div className="text-[11px] font-mono opacity-90">${investment}</div>
+                  <div className="text-[11px] font-mono opacity-90">${investment.toLocaleString()}</div>
                 </div>
               </button>
 
@@ -722,7 +771,7 @@ export const TradingTerminalPage: React.FC<TradingTerminalPageProps> = ({
                 </div>
                 <div className="text-right">
                   <div className="text-base font-black tracking-wide">BUY</div>
-                  <div className="text-[11px] font-mono opacity-90">${investment}</div>
+                  <div className="text-[11px] font-mono opacity-90">${investment.toLocaleString()}</div>
                 </div>
               </button>
             </div>
