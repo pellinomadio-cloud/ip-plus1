@@ -108,23 +108,6 @@ export const CRYPTO_OPTIONS: CryptoOption[] = [
     rateUsd: 155.00
   },
   {
-    id: 'usdc',
-    name: 'USD Coin',
-    symbol: 'USDC',
-    networkName: 'USD Coin Network',
-    networkCode: 'USDC',
-    iconSymbol: '$',
-    color: '#2775CA',
-    bgColor: 'bg-[#2775CA]/15',
-    borderColor: 'border-[#2775CA]/40',
-    badgeBg: 'bg-[#2775CA]/20',
-    badgeText: 'text-[#2775CA]',
-    minDeposit: 10,
-    maxConfirmBlocks: 12,
-    defaultAddress: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
-    rateUsd: 1.00
-  },
-  {
     id: 'trx',
     name: 'TRON',
     symbol: 'TRX',
@@ -280,7 +263,7 @@ export const FundsWalletPage: React.FC<FundsWalletPageProps> = ({ onBack, onGoTo
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
             <span>Select Deposit Cryptocurrency</span>
-            <span className="text-[10px] text-slate-400">8 Supported Chains</span>
+            <span className="text-[10px] text-slate-400">{CRYPTO_OPTIONS.length} Supported Chains</span>
           </label>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none scroll-smooth">
