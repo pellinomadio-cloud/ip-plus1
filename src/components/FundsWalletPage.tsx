@@ -40,23 +40,6 @@ export interface CryptoOption {
 
 export const CRYPTO_OPTIONS: CryptoOption[] = [
   {
-    id: 'usdt-trc20',
-    name: 'Tether USDT',
-    symbol: 'USDT',
-    networkName: 'TRON Network (TRC-20)',
-    networkCode: 'TRC20',
-    iconSymbol: '₮',
-    color: '#26A17B',
-    bgColor: 'bg-[#26A17B]/15',
-    borderColor: 'border-[#26A17B]/40',
-    badgeBg: 'bg-[#26A17B]/20',
-    badgeText: 'text-[#26A17B]',
-    minDeposit: 10,
-    maxConfirmBlocks: 12,
-    defaultAddress: 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc',
-    rateUsd: 1.00
-  },
-  {
     id: 'btc',
     name: 'Bitcoin',
     symbol: 'BTC',
@@ -89,23 +72,6 @@ export const CRYPTO_OPTIONS: CryptoOption[] = [
     maxConfirmBlocks: 12,
     defaultAddress: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
     rateUsd: 3520.00
-  },
-  {
-    id: 'usdt-erc20',
-    name: 'Tether USDT',
-    symbol: 'USDT',
-    networkName: 'Ethereum Network (ERC-20)',
-    networkCode: 'ERC20',
-    iconSymbol: '₮',
-    color: '#627EEA',
-    bgColor: 'bg-[#627EEA]/15',
-    borderColor: 'border-[#627EEA]/40',
-    badgeBg: 'bg-[#627EEA]/20',
-    badgeText: 'text-[#627EEA]',
-    minDeposit: 20,
-    maxConfirmBlocks: 12,
-    defaultAddress: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
-    rateUsd: 1.00
   },
   {
     id: 'bnb',
@@ -179,7 +145,7 @@ export const CRYPTO_OPTIONS: CryptoOption[] = [
 
 export const FundsWalletPage: React.FC<FundsWalletPageProps> = ({ onBack, onGoToTrade }) => {
   const { currentUser, trc20WalletAddress, cryptoAddresses, submitDepositRequest } = useAuth();
-  const [selectedCryptoId, setSelectedCryptoId] = useState<string>('usdt-trc20');
+  const [selectedCryptoId, setSelectedCryptoId] = useState<string>('btc');
   const [amount, setAmount] = useState<string>('100');
   const [copied, setCopied] = useState<boolean>(false);
   const [txIdInput, setTxIdInput] = useState<string>('');
@@ -194,7 +160,7 @@ export const FundsWalletPage: React.FC<FundsWalletPageProps> = ({ onBack, onGoTo
   // Active deposit address (Uses admin configured address for the selected crypto or fallback)
   const activeAddress = (cryptoAddresses && cryptoAddresses[selectedCrypto.id])
     ? cryptoAddresses[selectedCrypto.id]
-    : ((selectedCrypto.id === 'usdt-trc20' || selectedCrypto.id === 'trx') && trc20WalletAddress
+    : (selectedCrypto.id === 'trx' && trc20WalletAddress
         ? trc20WalletAddress 
         : selectedCrypto.defaultAddress);
 

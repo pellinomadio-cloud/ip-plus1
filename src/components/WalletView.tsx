@@ -50,7 +50,7 @@ export const WalletView: React.FC<WalletViewProps> = ({ onOpenDeposit, onOpenWit
             className="py-3 px-4 bg-[#F5BA31] hover:bg-[#ffc842] active:scale-[0.98] text-slate-950 font-extrabold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/15 transition-all cursor-pointer"
           >
             <ArrowDownToLine className="w-4 h-4" />
-            <span>Deposit USDT (Crypto)</span>
+            <span>Deposit Crypto</span>
           </button>
           <button
             onClick={onOpenWithdraw}
