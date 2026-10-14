@@ -13,6 +13,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
+import { PWAInstallButton } from './PWAInstallButton';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../data/marketData';
 import { NavTab } from '../types';
@@ -92,8 +93,13 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
               }}
               className="w-full mt-1 py-1.5 bg-[#26A17B] hover:bg-[#208f6d] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors font-mono"
             >
-              <span>₮ Deposit USDT (Crypto)</span>
+              <span>Deposit Crypto</span>
             </button>
+          </div>
+
+          {/* PWA Install Button Option */}
+          <div className="pt-1">
+            <PWAInstallButton variant="drawer" />
           </div>
 
           {/* Navigation Links */}

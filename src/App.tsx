@@ -23,6 +23,8 @@ import { NavigationDrawer } from './components/NavigationDrawer';
 import { NavTab, MarketAsset } from './types';
 import { Smartphone, Monitor, ShieldCheck, Sparkles } from 'lucide-react';
 import { BrandLogo } from './components/BrandLogo';
+import { PWAInstallButton } from './components/PWAInstallButton';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 function AppContent() {
   const { isAuthenticated, currentUser, expiredTradeResult, clearExpiredTradeResult } = useAuth();
@@ -62,6 +64,7 @@ function AppContent() {
         </div>
 
         <div className="flex items-center gap-2">
+          <PWAInstallButton variant="button" />
           <div className="bg-[#141B27] p-0.5 rounded-lg border border-slate-800 flex items-center gap-1">
             <button
               onClick={() => setDesktopMode('mobile')}
@@ -91,6 +94,8 @@ function AppContent() {
           ? 'max-w-[430px] min-h-screen sm:min-h-[920px] sm:my-6 sm:border sm:border-slate-800 sm:rounded-[40px] sm:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] overflow-hidden bg-[#0B0F17]'
           : 'max-w-5xl min-h-screen px-4 sm:px-6 py-4 bg-[#0B0F17]'
       }`}>
+        {/* Top PWA Install Banner */}
+        <PWAInstallButton variant="banner" />
         {/* Dynamic Screen Content based on Active Tab */}
         {activeTab === 'home' && (
           <DashboardView
@@ -191,6 +196,8 @@ function AppContent() {
         onClose={clearExpiredTradeResult}
         onTradeAgain={() => setActiveTab('trade')}
       />
+
+      <OfflineIndicator />
     </div>
   );
 }
