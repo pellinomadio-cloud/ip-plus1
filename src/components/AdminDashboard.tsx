@@ -17,13 +17,15 @@ import {
   Copy,
   ArrowRight,
   ArrowLeft,
-  UserCheck
+  UserCheck,
+  CreditCard
 } from 'lucide-react';
 import { User } from '../types';
 import { formatCurrency } from '../data/marketData';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
+import { CRYPTO_OPTIONS, CryptoOption } from './FundsWalletPage';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -33,6 +35,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const { 
     trc20WalletAddress, 
     updateTrc20WalletAddress, 
+    cryptoAddresses,
+    updateCryptoAddress,
+    updateAllCryptoAddresses,
     depositRequests, 
     approveDepositRequest, 
     rejectDepositRequest,
@@ -45,11 +50,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [newBalanceInput, setNewBalanceInput] = useState<string>('');
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
-  // Wallet Address State
-  const [walletInput, setWalletInput] = useState<string>(trc20WalletAddress || 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc');
+  // Wallet Address State per Cryptocurrency
+  const [addressInputs, setAddressInputs] = useState<Record<string, string>>({});
   const [walletSavedNotice, setWalletSavedNotice] = useState<boolean>(false);
+  const [walletSavedMessage, setWalletSavedMessage] = useState<string>('');
 
-  // Load users from localStorage as baseline
+  // Load baseline users
   const loadUsersFromLocal = () => {
     try {
       const savedDb = localStorage.getItem('iq_plus_registered_users');
@@ -59,6 +65,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       setUsers([]);
     }
   };
+
+  // Sync inputs with AuthContext addresses
+  useEffect(() => {
+    const merged: Record<string, string> = {};
+    CRYPTO_OPTIONS.forEach(c => {
+      merged[c.id] = (cryptoAddresses && cryptoAddresses[c.id])
+        ? cryptoAddresses[c.id]
+        : ((c.id === 'usdt-trc20' || c.id === 'trx') && trc20WalletAddress ? trc20WalletAddress : c.defaultAddress);
+    });
+    setAddressInputs(merged);
+  }, [cryptoAddresses, trc20WalletAddress]);
 
   // Real-time Firestore Users Listener
   useEffect(() => {
@@ -75,7 +92,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         });
 
         if (fsUsers.length > 0) {
-          // Merge with local users database if local has additional entries
           const savedDbStr = localStorage.getItem('iq_plus_registered_users');
           const localUsers: User[] = savedDbStr ? JSON.parse(savedDbStr) : [];
           const combinedMap = new Map<string, User>();
@@ -99,12 +115,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       if (unsubscribe) unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    if (trc20WalletAddress) {
-      setWalletInput(trc20WalletAddress);
-    }
-  }, [trc20WalletAddress]);
 
   const handleEditBalanceClick = (user: User) => {
     setSelectedUser(user);
@@ -153,7 +163,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         console.warn("Firestore balance update note:", fsErr);
       }
 
-      // Update local state copy
       setUsers(prev => prev.map(u => u.email.toLowerCase() === selectedUser.email.toLowerCase() ? { ...u, balance: newBal } : u));
 
       setNotice({ 
@@ -172,7 +181,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     try {
       const newKyc = !user.isKycVerified;
 
-      // Local storage
       const savedDbStr = localStorage.getItem('iq_plus_registered_users');
       const dbUsers: User[] = savedDbStr ? JSON.parse(savedDbStr) : [];
       const idx = dbUsers.findIndex(u => u.email.toLowerCase() === user.email.toLowerCase());
@@ -182,7 +190,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         localStorage.setItem('iq_plus_registered_users', JSON.stringify(dbUsers));
       }
 
-      // Firestore
       try {
         const targetDocId = user.id || user.email.toLowerCase().replace(/[^a-z0-9]/g, '_');
         const userRef = doc(db, 'users', targetDocId);
@@ -197,13 +204,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     }
   };
 
-  const handleSaveWalletAddress = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!walletInput.trim()) return;
-
-    updateTrc20WalletAddress(walletInput.trim());
+  const handleSaveSingleAddress = (cryptoId: string) => {
+    const val = addressInputs[cryptoId];
+    if (!val || !val.trim()) return;
+    const crypto = CRYPTO_OPTIONS.find(c => c.id === cryptoId);
+    updateCryptoAddress(cryptoId, val.trim());
+    setWalletSavedMessage(`${crypto?.name || cryptoId} deposit address updated! Users on the deposit page will now see this address.`);
     setWalletSavedNotice(true);
-    setTimeout(() => setWalletSavedNotice(false), 3000);
+    setTimeout(() => setWalletSavedNotice(false), 3500);
+  };
+
+  const handleSaveAllAddresses = () => {
+    updateAllCryptoAddresses(addressInputs);
+    setWalletSavedMessage('All payment method deposit addresses updated successfully!');
+    setWalletSavedNotice(true);
+    setTimeout(() => setWalletSavedNotice(false), 3500);
   };
 
   const handleApproveDeposit = (reqId: string) => {
@@ -236,7 +251,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
   return (
     <div className="min-h-screen bg-[#070A0F] text-white pb-24 select-none">
-      {/* Top Header Bar for Full-Screen Page */}
+      {/* Top Header Bar */}
       <div className="flex items-center justify-between px-4 py-3 bg-[#090D14] border-b border-slate-800/80 sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <button
@@ -253,7 +268,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 AUTHENTICATED
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">Platform Management & User Balances</p>
+            <p className="text-[11px] text-slate-400">Platform Management & Payment Addresses</p>
           </div>
         </div>
 
@@ -278,7 +293,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           </div>
         )}
 
-        {/* Overview Stats - Shows amount of registered users globally */}
+        {/* Overview Stats */}
         <div className="grid grid-cols-3 gap-3">
           <div className="p-3.5 bg-[#121824] border border-slate-800 rounded-2xl">
             <span className="text-slate-400 text-xs block">Global Users</span>
@@ -298,46 +313,76 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           </div>
         </div>
 
-        {/* Admin Section 1: TRC20 Deposit Wallet Address Settings */}
-        <div className="p-4 bg-[#121824] border border-slate-800 rounded-2xl space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-[#26A17B]" />
-              TRC20 Deposit Wallet Address Config
-            </h3>
-            <span className="text-[10px] text-[#26A17B] bg-[#26A17B]/10 px-2 py-0.5 rounded font-mono font-bold">
-              USDT (TRC20)
-            </span>
+        {/* Admin Section 1: Payment Method Wallet Addresses Management */}
+        <div className="p-4 bg-[#121824] border border-slate-800 rounded-2xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-amber-400" />
+                Payment Method Deposit Addresses ({CRYPTO_OPTIONS.length})
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Change the deposit wallet address presented to users for each supported cryptocurrency.
+              </p>
+            </div>
+
+            <button
+              onClick={handleSaveAllAddresses}
+              className="py-1.5 px-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto shrink-0 shadow-md shadow-amber-400/20"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Save All Addresses</span>
+            </button>
           </div>
 
-          <p className="text-xs text-slate-400">
-            Change the default TRC20 wallet address presented to users on the deposit page.
-          </p>
-
           {walletSavedNotice && (
-            <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>TRC20 Wallet Address updated! All user deposit pages will now display this address.</span>
+            <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{walletSavedMessage || 'Wallet addresses updated! User deposit pages will now display these addresses.'}</span>
             </div>
           )}
 
-          <form onSubmit={handleSaveWalletAddress} className="flex gap-2">
-            <input
-              type="text"
-              required
-              value={walletInput}
-              onChange={(e) => setWalletInput(e.target.value)}
-              className="flex-1 px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-[#26A17B]"
-              placeholder="Enter TRC20 wallet address..."
-            />
-            <button
-              type="submit"
-              className="py-2 px-4 bg-[#26A17B] hover:bg-[#208f6d] text-white font-bold text-xs rounded-xl flex items-center gap-1 transition-colors cursor-pointer shrink-0"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>Save Address</span>
-            </button>
-          </form>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {CRYPTO_OPTIONS.map(crypto => {
+              const currentVal = addressInputs[crypto.id] || '';
+              return (
+                <div key={crypto.id} className="p-3 bg-[#0B0F17] border border-slate-800/80 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-mono font-bold text-white shrink-0"
+                        style={{ backgroundColor: crypto.color }}
+                      >
+                        {crypto.iconSymbol}
+                      </div>
+                      <span className="text-xs font-bold text-white">{crypto.name}</span>
+                      <span className={`text-[9px] ${crypto.badgeBg} ${crypto.badgeText} px-1.5 py-0.2 rounded font-mono font-bold`}>
+                        {crypto.networkCode}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      value={currentVal}
+                      onChange={(e) => setAddressInputs(prev => ({ ...prev, [crypto.id]: e.target.value }))}
+                      className="flex-1 px-2.5 py-1.5 bg-[#121824] border border-slate-800 rounded-lg text-[11px] font-mono text-white placeholder-slate-600 focus:outline-none focus:border-amber-400/70"
+                      placeholder={`Enter ${crypto.symbol} address...`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleSaveSingleAddress(crypto.id)}
+                      className="py-1.5 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs rounded-lg flex items-center gap-1 transition-colors cursor-pointer shrink-0 border border-slate-700"
+                    >
+                      <Save className="w-3 h-3 text-amber-400" />
+                      <span>Save</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Admin Section 2: Pending User Deposit Reviews */}
@@ -364,7 +409,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-white text-sm">{req.userName}</span>
                       <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">
-                        ${req.amount.toFixed(2)} USDT ({req.network})
+                        ${req.amount.toFixed(2)} USD ({req.network})
                       </span>
                     </div>
                     <p className="text-xs text-slate-400 truncate">{req.userEmail}</p>
@@ -426,7 +471,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             </div>
           </div>
 
-          {/* Conditional Display: Prompt when not searching, vs filtered results when searching */}
           {!isSearching ? (
             <div className="p-6 text-center bg-[#121824] border border-slate-800 rounded-2xl text-slate-400 space-y-2">
               <div className="w-10 h-10 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center mx-auto text-amber-400">

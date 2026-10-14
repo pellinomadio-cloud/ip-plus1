@@ -17,6 +17,7 @@ import { BottomNav } from './components/BottomNav';
 import { FundsWalletPage } from './components/FundsWalletPage';
 import { WithdrawModal } from './components/modals/WithdrawModal';
 import { TradeModal } from './components/modals/TradeModal';
+import { TradeResultModal } from './components/modals/TradeResultModal';
 import { TradingTerminalPage } from './components/TradingTerminalPage';
 import { NavigationDrawer } from './components/NavigationDrawer';
 import { NavTab, MarketAsset } from './types';
@@ -24,7 +25,7 @@ import { Smartphone, Monitor, ShieldCheck, Sparkles } from 'lucide-react';
 import { BrandLogo } from './components/BrandLogo';
 
 function AppContent() {
-  const { isAuthenticated, currentUser } = useAuth();
+  const { isAuthenticated, currentUser, expiredTradeResult, clearExpiredTradeResult } = useAuth();
   const { setSelectedAsset } = useMarket();
 
   const [activeTab, setActiveTab] = useState<NavTab>('home');
@@ -183,6 +184,12 @@ function AppContent() {
           setIsDrawerOpen(false);
           setActiveTab('funds_wallet');
         }}
+      />
+
+      <TradeResultModal
+        trade={expiredTradeResult}
+        onClose={clearExpiredTradeResult}
+        onTradeAgain={() => setActiveTab('trade')}
       />
     </div>
   );

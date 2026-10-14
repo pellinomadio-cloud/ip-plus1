@@ -12,7 +12,9 @@ import {
   Info,
   X,
   Maximize2,
-  Minimize2
+  Minimize2,
+  ZoomIn,
+  ZoomOut
 } from 'lucide-react';
 
 interface CandleChartProps {
@@ -40,11 +42,19 @@ export const CandleChart: React.FC<CandleChartProps> = ({
   const [scrollOffset, setScrollOffset] = useState<number>(0); // 0 = viewing latest live candles, > 0 = scrolled into history
   const [selectedTrade, setSelectedTrade] = useState<QuickTrade | null>(null);
 
+  // Zooming state (1.0 = 100% normal view, 1.5 = 150%, 2.0 = 200%, 3.0 = 300% zoomed in)
+  const [zoomLevel, setZoomLevel] = useState<number>(1.0);
+  const [hoveredCandle, setHoveredCandle] = useState<Candle | null>(null);
+
   // Dragging / pan gesture tracking
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragStartX = useRef<number>(0);
   const initialOffsetOnDrag = useRef<number>(0);
   const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Pinch-to-zoom distance tracking for touch devices
+  const initialPinchDist = useRef<number | null>(null);
+  const initialZoomOnPinch = useRef<number>(1.0);
 
   const prevSymbolRef = useRef(symbol);
 
@@ -67,11 +77,12 @@ export const CandleChart: React.FC<CandleChartProps> = ({
     if (prevSymbolRef.current !== symbol) {
       setCandles(generateInitialCandles(currentPrice, 42));
       setScrollOffset(0);
+      setZoomLevel(1.0);
       prevSymbolRef.current = symbol;
     }
   }, [symbol, currentPrice]);
 
-  // When price ticks, update candles. If at live (scrollOffset === 0), auto-scroll stays at live.
+  // When price ticks, update candles.
   useEffect(() => {
     setCandles(prev => updateCandlesWithPrice(prev, currentPrice));
   }, [currentPrice]);
@@ -101,7 +112,7 @@ export const CandleChart: React.FC<CandleChartProps> = ({
           volume: Math.floor(15 + Math.random() * 40)
         };
 
-        // Keep last 80 candles so memory stays lean while giving deep scrollback history
+        // Keep last 80 candles
         const updated = [...prev, nextCandle];
         if (updated.length > 80) return updated.slice(updated.length - 80);
         return updated;
@@ -111,8 +122,32 @@ export const CandleChart: React.FC<CandleChartProps> = ({
     return () => clearInterval(stepTimer);
   }, [currentPrice]);
 
-  // Viewport windowing: how many candles are visible at once
-  const visibleCount = 26;
+  // Zoom handlers
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(3.5, Number((prev + 0.25).toFixed(2))));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(0.5, Number((prev - 0.25).toFixed(2))));
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1.0);
+  };
+
+  // Mouse Wheel Zoom
+  const handleWheelZoom = (e: React.WheelEvent) => {
+    // Zoom in on wheel scroll up, out on scroll down
+    if (e.deltaY < 0) {
+      setZoomLevel(prev => Math.min(3.5, Number((prev + 0.15).toFixed(2))));
+    } else if (e.deltaY > 0) {
+      setZoomLevel(prev => Math.max(0.5, Number((prev - 0.15).toFixed(2))));
+    }
+  };
+
+  // Viewport windowing: calculate visible count based on zoomLevel (zooming in reduces count so candles get bigger)
+  const baseCount = isFullScreen ? 22 : 26;
+  const visibleCount = Math.max(5, Math.min(48, Math.round(baseCount / zoomLevel)));
   const maxScroll = Math.max(0, candles.length - visibleCount);
 
   // Clamp scroll offset
@@ -162,19 +197,19 @@ export const CandleChart: React.FC<CandleChartProps> = ({
   }, [visibleCandles, currentPrice, safeOffset]);
 
   // Dimensions
-  const width = 380;
-  const height = isFullScreen ? 460 : 300;
-  const candleAreaHeight = isFullScreen ? 375 : 225;
-  const volumeAreaHeight = isFullScreen ? 50 : 40;
-  const rightAxisWidth = 62;
+  const width = 420;
+  const height = isFullScreen ? 580 : 340;
+  const candleAreaHeight = isFullScreen ? 470 : 260;
+  const volumeAreaHeight = isFullScreen ? 60 : 45;
+  const rightAxisWidth = 70;
   const plotWidth = width - rightAxisWidth;
 
-  const slotWidth = visibleCandles.length > 0 ? plotWidth / visibleCandles.length : 12;
-  const candleWidth = Math.max(3.5, slotWidth * 0.65);
+  const slotWidth = visibleCandles.length > 0 ? plotWidth / visibleCandles.length : 14;
+  const candleWidth = Math.max(isFullScreen ? 6 : 4.5, slotWidth * (isFullScreen ? 0.76 : 0.70));
 
   const getY = (price: number) => {
     const fraction = (maxPrice - price) / priceRange;
-    return Math.max(6, Math.min(candleAreaHeight - 6, fraction * candleAreaHeight));
+    return Math.max(8, Math.min(candleAreaHeight - 8, fraction * candleAreaHeight));
   };
 
   const currentY = getY(currentPrice);
@@ -198,7 +233,30 @@ export const CandleChart: React.FC<CandleChartProps> = ({
     ];
   }, [visibleCandles, plotWidth]);
 
-  // Touch and Mouse Drag / Pan Handlers
+  // Find highest and lowest candles in visible window for high/low labels when zoomed in
+  const { highestCandleInfo, lowestCandleInfo } = useMemo(() => {
+    if (visibleCandles.length === 0) return { highestCandleInfo: null, lowestCandleInfo: null };
+    let highIdx = 0;
+    let lowIdx = 0;
+    visibleCandles.forEach((c, idx) => {
+      if (c.high > visibleCandles[highIdx].high) highIdx = idx;
+      if (c.low < visibleCandles[lowIdx].low) lowIdx = idx;
+    });
+    return {
+      highestCandleInfo: {
+        candle: visibleCandles[highIdx],
+        x: highIdx * slotWidth + slotWidth / 2,
+        y: getY(visibleCandles[highIdx].high)
+      },
+      lowestCandleInfo: {
+        candle: visibleCandles[lowIdx],
+        x: lowIdx * slotWidth + slotWidth / 2,
+        y: getY(visibleCandles[lowIdx].low)
+      }
+    };
+  }, [visibleCandles, slotWidth, maxPrice, minPrice, priceRange, candleAreaHeight]);
+
+  // Touch and Mouse Drag / Pan / Pinch-Zoom Handlers
   const handlePointerDown = (clientX: number) => {
     setIsDragging(true);
     dragStartX.current = clientX;
@@ -208,7 +266,7 @@ export const CandleChart: React.FC<CandleChartProps> = ({
   const handlePointerMove = (clientX: number) => {
     if (!isDragging) return;
     const deltaX = clientX - dragStartX.current;
-    // Moving finger to the right (positive delta) scrolls back into history (increases scrollOffset)
+    // Moving finger/mouse to the right scrolls back into history
     const candlesMoved = Math.round(deltaX / (slotWidth * 1.5));
     const newOffset = Math.min(Math.max(0, initialOffsetOnDrag.current + candlesMoved), maxScroll);
     setScrollOffset(newOffset);
@@ -216,6 +274,38 @@ export const CandleChart: React.FC<CandleChartProps> = ({
 
   const handlePointerUp = () => {
     setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      initialPinchDist.current = dist;
+      initialZoomOnPinch.current = zoomLevel;
+    } else if (e.touches.length === 1) {
+      handlePointerDown(e.touches[0].clientX);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && initialPinchDist.current !== null) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const scale = dist / initialPinchDist.current;
+      const newZoom = Math.min(3.5, Math.max(0.5, initialZoomOnPinch.current * scale));
+      setZoomLevel(Number(newZoom.toFixed(2)));
+    } else if (e.touches.length === 1) {
+      handlePointerMove(e.touches[0].clientX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    initialPinchDist.current = null;
+    handlePointerUp();
   };
 
   // Map trades to visible candles
@@ -227,7 +317,6 @@ export const CandleChart: React.FC<CandleChartProps> = ({
     return trades
       .filter(t => t.assetSymbol === symbol && t.startTime >= minTime && t.startTime <= maxTime)
       .map(t => {
-        // Find closest visible candle index
         let closestIdx = 0;
         let minDiff = Infinity;
         visibleCandles.forEach((c, idx) => {
@@ -248,25 +337,34 @@ export const CandleChart: React.FC<CandleChartProps> = ({
       });
   }, [trades, visibleCandles, symbol, slotWidth]);
 
-  // Determine active live candle direction
+  // Determine active live candle or hovered candle for detailed display
   const activeCandle = visibleCandles[visibleCandles.length - 1];
+  const inspectedCandle = hoveredCandle || activeCandle;
   const isMarketGoingUp = activeCandle ? activeCandle.close >= activeCandle.open : true;
   const activeDirectionColor = isMarketGoingUp ? '#00C26F' : '#E02B37';
 
   return (
     <div 
       ref={chartContainerRef}
-      className="relative w-full h-[320px] bg-[#090D14] border border-slate-800/80 rounded-2xl overflow-hidden select-none touch-none cursor-grab active:cursor-grabbing"
+      className={`relative w-full bg-[#090D14] border border-slate-800/80 rounded-2xl overflow-hidden select-none touch-none cursor-grab active:cursor-grabbing ${
+        isFullScreen 
+          ? 'h-full min-h-[460px] sm:min-h-[560px] md:min-h-[620px]' 
+          : 'h-[380px] sm:h-[420px]'
+      }`}
       onMouseDown={(e) => handlePointerDown(e.clientX)}
       onMouseMove={(e) => handlePointerMove(e.clientX)}
       onMouseUp={handlePointerUp}
-      onMouseLeave={handlePointerUp}
-      onTouchStart={(e) => handlePointerDown(e.touches[0].clientX)}
-      onTouchMove={(e) => handlePointerMove(e.touches[0].clientX)}
-      onTouchEnd={handlePointerUp}
+      onMouseLeave={() => {
+        handlePointerUp();
+        setHoveredCandle(null);
+      }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onWheel={handleWheelZoom}
     >
-      {/* Top Header Controls: Live status, Up/Down badge, and Pan controllers */}
-      <div className="absolute top-2.5 left-3 right-3 z-20 flex items-center justify-between text-xs font-semibold pointer-events-none">
+      {/* Top Header Bar: Live status, OHLC inspection details, Market direction badge */}
+      <div className="absolute top-2.5 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-1 text-xs font-semibold pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
           <span className="flex items-center gap-1.5 text-emerald-400 font-mono">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -275,29 +373,39 @@ export const CandleChart: React.FC<CandleChartProps> = ({
           <span className="text-slate-300 font-mono tracking-wider text-[11px]">
             {currentTimeStr || '09:41:32'}
           </span>
+
+          {/* Inspected / Active Candle OHLC Bar */}
+          {inspectedCandle && (
+            <div className="hidden sm:flex items-center gap-2 text-[10px] font-mono font-medium text-slate-300 bg-[#0c121e]/90 px-2 py-0.5 rounded-lg border border-slate-800 pointer-events-auto">
+              <span>O: <strong className="text-white">${inspectedCandle.open}</strong></span>
+              <span>H: <strong className="text-emerald-400">${inspectedCandle.high}</strong></span>
+              <span>L: <strong className="text-rose-400">${inspectedCandle.low}</strong></span>
+              <span>C: <strong className={inspectedCandle.close >= inspectedCandle.open ? 'text-emerald-400' : 'text-rose-400'}>${inspectedCandle.close}</strong></span>
+            </div>
+          )}
         </div>
 
         {/* Dynamic Live Market Direction Badge */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 pointer-events-auto">
           <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors ${
             isMarketGoingUp 
               ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
               : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
           }`}>
-            <span>{isMarketGoingUp ? '▲ Up (Green Candle)' : '▼ Down (Red Candle)'}</span>
+            <span>{isMarketGoingUp ? '▲ Up' : '▼ Down'}</span>
           </div>
 
           {/* Scroll / History Indicator */}
           {safeOffset > 0 && (
             <div className="bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1 pointer-events-auto">
               <Clock className="w-3 h-3" />
-              <span>Viewing Past ({safeOffset} candles back)</span>
+              <span>History ({safeOffset} back)</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Floating "Jump to Live" button when user has scrolled back to inspect lost/past trades */}
+      {/* Floating "Jump to Live" button */}
       {safeOffset > 0 && (
         <button
           onClick={(e) => {
@@ -311,40 +419,86 @@ export const CandleChart: React.FC<CandleChartProps> = ({
         </button>
       )}
 
-      {/* Quick Scroll Step buttons (left/right) */}
-      <div className="absolute top-10 right-3 z-20 flex gap-1 pointer-events-auto">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setScrollOffset(prev => Math.min(prev + 5, maxScroll));
-          }}
-          className="p-1 rounded-lg bg-[#141B27]/80 hover:bg-[#1E293B] border border-slate-800 text-slate-300 hover:text-white"
-          title="Scroll Back in Time"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setScrollOffset(prev => Math.max(0, prev - 5));
-          }}
-          disabled={safeOffset === 0}
-          className="p-1 rounded-lg bg-[#141B27]/80 hover:bg-[#1E293B] border border-slate-800 text-slate-300 hover:text-white disabled:opacity-30"
-          title="Scroll Forward"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
+      {/* Floating Controls Toolbar: Zoom In, Zoom Out, Zoom Level Badge, Step Scroll, Fullscreen */}
+      <div className="absolute top-10 right-3 z-20 flex items-center gap-1.5 pointer-events-auto bg-[#0d1320]/90 backdrop-blur-md p-1 rounded-xl border border-slate-800/80 shadow-lg">
+        {/* Zoom Controls */}
+        <div className="flex items-center gap-0.5 bg-[#141B27] rounded-lg p-0.5 border border-slate-800">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleZoomIn();
+            }}
+            className="p-1 rounded-md hover:bg-slate-800 text-slate-200 hover:text-white transition-colors"
+            title="Zoom In on Candles (+)"
+          >
+            <ZoomIn className="w-3.5 h-3.5 text-amber-400" />
+          </button>
 
+          <span className="px-1 text-[10px] font-mono font-bold text-amber-300 min-w-[34px] text-center select-none">
+            {Math.round(zoomLevel * 100)}%
+          </span>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleZoomOut();
+            }}
+            className="p-1 rounded-md hover:bg-slate-800 text-slate-200 hover:text-white transition-colors"
+            title="Zoom Out on Candles (-)"
+          >
+            <ZoomOut className="w-3.5 h-3.5 text-slate-300" />
+          </button>
+
+          {zoomLevel !== 1.0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleResetZoom();
+              }}
+              className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors ml-0.5"
+              title="Reset Zoom to 100%"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+
+        {/* Pan / History Step Buttons */}
+        <div className="flex items-center gap-0.5 bg-[#141B27] rounded-lg p-0.5 border border-slate-800">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setScrollOffset(prev => Math.min(prev + 5, maxScroll));
+            }}
+            className="p-1 rounded-md hover:bg-slate-800 text-slate-300 hover:text-white"
+            title="Scroll Back in Time"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setScrollOffset(prev => Math.max(0, prev - 5));
+            }}
+            disabled={safeOffset === 0}
+            className="p-1 rounded-md hover:bg-slate-800 text-slate-300 hover:text-white disabled:opacity-30"
+            title="Scroll Forward"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Fullscreen Toggle */}
         {onToggleFullScreen && (
           <button
             onClick={(e) => {
               e.stopPropagation();
               onToggleFullScreen();
             }}
-            className="p-1 rounded-lg bg-[#141B27]/80 hover:bg-[#1E293B] border border-slate-800 text-amber-400 hover:text-amber-300 transition-colors"
+            className="p-1.5 rounded-lg bg-[#141B27] hover:bg-slate-800 border border-slate-800 text-amber-400 hover:text-amber-300 transition-colors"
             title={isFullScreen ? "Exit Full Screen" : "Full Screen Chart (Clear View)"}
           >
-            {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {isFullScreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
         )}
       </div>
@@ -376,10 +530,11 @@ export const CandleChart: React.FC<CandleChartProps> = ({
               />
               <text
                 x={plotWidth + 8}
-                y={y + 3}
+                y={y + 3.5}
                 fill="#8E9BAE"
-                fontSize="10"
+                fontSize={isFullScreen ? "12" : "10"}
                 fontFamily="monospace"
+                fontWeight={isFullScreen ? "bold" : "normal"}
                 textAnchor="start"
               >
                 {formatYPrice(item.price)}
@@ -440,9 +595,15 @@ export const CandleChart: React.FC<CandleChartProps> = ({
 
               const volBarHeight = (candle.volume / maxVol) * volumeAreaHeight;
               const volY = height - 25 - volBarHeight;
+              const isHovered = hoveredCandle === candle;
 
               return (
-                <g key={idx}>
+                <g 
+                  key={idx}
+                  onMouseEnter={() => setHoveredCandle(candle)}
+                  onMouseLeave={() => setHoveredCandle(null)}
+                  className="cursor-pointer transition-opacity hover:opacity-100"
+                >
                   {/* Wicks */}
                   <line
                     x1={x}
@@ -450,7 +611,13 @@ export const CandleChart: React.FC<CandleChartProps> = ({
                     x2={x}
                     y2={lowY}
                     stroke={candleColor}
-                    strokeWidth="1.2"
+                    strokeWidth={
+                      isHovered
+                        ? "3"
+                        : isFullScreen
+                        ? Math.min(3.5, 2.2 * Math.sqrt(zoomLevel))
+                        : Math.min(2.8, 1.6 * Math.sqrt(zoomLevel))
+                    }
                   />
 
                   {/* Body: Green going up, Red going down */}
@@ -460,7 +627,9 @@ export const CandleChart: React.FC<CandleChartProps> = ({
                     width={candleWidth}
                     height={bodyHeight}
                     fill={candleColor}
-                    rx="0.5"
+                    rx={zoomLevel >= 1.5 ? "2" : "0.5"}
+                    stroke={isHovered ? "#FFFFFF" : "none"}
+                    strokeWidth={isHovered ? "1.5" : "0"}
                   />
 
                   {/* Volume bar */}
@@ -470,12 +639,31 @@ export const CandleChart: React.FC<CandleChartProps> = ({
                     width={candleWidth}
                     height={volBarHeight}
                     fill={candleColor}
-                    opacity="0.6"
+                    opacity={isHovered ? "0.9" : "0.6"}
                     rx="0.5"
                   />
                 </g>
               );
             })}
+
+            {/* High & Low Price Markers when Zoomed In or in Full Screen */}
+            {(zoomLevel >= 1.2 || isFullScreen) && highestCandleInfo && (
+              <g transform={`translate(${Math.min(plotWidth - 55, Math.max(5, highestCandleInfo.x - 22))}, ${Math.max(12, highestCandleInfo.y - 14)})`}>
+                <rect x="0" y="0" width="44" height="13" fill="#1E293B" rx="3" stroke="#00C26F" strokeWidth="0.8" />
+                <text x="22" y="9.5" fill="#00C26F" fontSize="8.5" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                  H:{formatYPrice(highestCandleInfo.candle.high)}
+                </text>
+              </g>
+            )}
+
+            {(zoomLevel >= 1.2 || isFullScreen) && lowestCandleInfo && (
+              <g transform={`translate(${Math.min(plotWidth - 55, Math.max(5, lowestCandleInfo.x - 22))}, ${Math.min(candleAreaHeight - 16, lowestCandleInfo.y + 3)})`}>
+                <rect x="0" y="0" width="44" height="13" fill="#1E293B" rx="3" stroke="#E02B37" strokeWidth="0.8" />
+                <text x="22" y="9.5" fill="#E02B37" fontSize="8.5" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                  L:{formatYPrice(lowestCandleInfo.candle.low)}
+                </text>
+              </g>
+            )}
           </g>
         ) : (
           /* Area Line Chart */
@@ -498,7 +686,7 @@ export const CandleChart: React.FC<CandleChartProps> = ({
               }, '')}
               fill="none"
               stroke={activeDirectionColor}
-              strokeWidth="2"
+              strokeWidth={isFullScreen ? "3" : "2"}
             />
           </g>
         )}
@@ -512,23 +700,23 @@ export const CandleChart: React.FC<CandleChartProps> = ({
               x2={plotWidth}
               y2={currentY}
               stroke={activeDirectionColor}
-              strokeWidth="1.2"
+              strokeWidth={isFullScreen ? "1.8" : "1.2"}
               strokeDasharray="4 3"
             />
-            <g transform={`translate(${plotWidth}, ${currentY - 10})`}>
+            <g transform={`translate(${plotWidth}, ${currentY - (isFullScreen ? 12 : 10)})`}>
               <rect
                 x="0"
                 y="0"
                 width={rightAxisWidth - 2}
-                height="20"
+                height={isFullScreen ? "24" : "20"}
                 fill={activeDirectionColor}
                 rx="4"
               />
               <text
                 x={(rightAxisWidth - 2) / 2}
-                y="13.5"
+                y={isFullScreen ? "16.5" : "13.5"}
                 fill="#FFFFFF"
-                fontSize="10"
+                fontSize={isFullScreen ? "12" : "10"}
                 fontWeight="bold"
                 fontFamily="monospace"
                 textAnchor="middle"
@@ -625,8 +813,9 @@ export const CandleChart: React.FC<CandleChartProps> = ({
             x={tl.x}
             y={height - 7}
             fill="#8E9BAE"
-            fontSize="9.5"
+            fontSize={isFullScreen ? "12" : "9.5"}
             fontFamily="monospace"
+            fontWeight={isFullScreen ? "bold" : "normal"}
             textAnchor="middle"
           >
             {tl.label}

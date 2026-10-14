@@ -659,7 +659,7 @@ export const TradingTerminalPage: React.FC<TradingTerminalPageProps> = ({
           )}
 
           {/* Expanded Chart Canvas */}
-          <div className="flex-1 px-3 pt-2 min-h-[380px] sm:min-h-[460px] flex flex-col justify-center">
+          <div className="flex-1 px-2 py-2 flex flex-col justify-center w-full min-h-[460px] sm:min-h-[580px]">
             <CandleChart
               currentPrice={selectedAsset.price}
               symbol={selectedAsset.symbol}

@@ -13,11 +13,32 @@ import {
   limit 
 } from 'firebase/firestore';
 
+const STORAGE_KEY_USER = 'iq_plus_active_user';
+const STORAGE_KEY_USERS_DB = 'iq_plus_registered_users';
+const STORAGE_KEY_POSITIONS = 'iq_plus_positions';
+const STORAGE_KEY_CLOSED = 'iq_plus_closed_positions';
+const STORAGE_KEY_TXS = 'iq_plus_transactions';
+const STORAGE_KEY_QUICK_TRADES = 'iq_plus_quick_trades';
+const STORAGE_KEY_TRC20_ADDRESS = 'iq_plus_trc20_address';
+const STORAGE_KEY_CRYPTO_ADDRESSES = 'iq_plus_crypto_addresses';
+const STORAGE_KEY_DEPOSIT_REQUESTS = 'iq_plus_deposit_requests';
+
+export const DEFAULT_CRYPTO_ADDRESSES: Record<string, string> = {
+  'usdt-trc20': 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc',
+  'btc': 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+  'eth': '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+  'usdt-erc20': '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+  'bnb': '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+  'sol': '7xKXtg2CW87d97TXJSDp15X27sJvB3P8s9XyZ1w2Q3E4',
+  'usdc': '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+  'trx': 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc'
+};
+
 interface AuthContextType {
   currentUser: User | null;
   isAuthenticated: boolean;
   register: (name: string, email: string, password: string) => { success: boolean; message?: string };
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }> | { success: boolean; message?: string };
+  login: (email: string, password: string) => { success: boolean; message?: string };
   quickDemoLogin: () => void;
   logout: () => void;
   depositFunds: (amount: number, method: string) => void;
@@ -42,23 +63,18 @@ interface AuthContextType {
   todayPnl: { amount: number; percent: number };
   trc20WalletAddress: string;
   updateTrc20WalletAddress: (address: string) => void;
+  cryptoAddresses: Record<string, string>;
+  updateCryptoAddress: (cryptoId: string, address: string) => void;
+  updateAllCryptoAddresses: (addresses: Record<string, string>) => void;
   depositRequests: DepositRequest[];
   submitDepositRequest: (amount: number, network: string, txHash: string) => void;
   approveDepositRequest: (requestId: string) => { success: boolean; message: string };
   rejectDepositRequest: (requestId: string) => { success: boolean; message: string };
   isFirebaseConnected: boolean;
+  expiredTradeResult: QuickTrade | null;
+  clearExpiredTradeResult: () => void;
 }
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const STORAGE_KEY_USER = 'iq_plus_active_user';
-const STORAGE_KEY_USERS_DB = 'iq_plus_registered_users';
-const STORAGE_KEY_POSITIONS = 'iq_plus_positions';
-const STORAGE_KEY_CLOSED = 'iq_plus_closed_positions';
-const STORAGE_KEY_TXS = 'iq_plus_transactions';
-const STORAGE_KEY_QUICK_TRADES = 'iq_plus_quick_trades';
-const STORAGE_KEY_TRC20_ADDRESS = 'iq_plus_trc20_address';
-const STORAGE_KEY_DEPOSIT_REQUESTS = 'iq_plus_deposit_requests';
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -96,6 +112,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return [];
     }
   });
+
+  const [expiredTradeResult, setExpiredTradeResult] = useState<QuickTrade | null>(null);
+  const clearExpiredTradeResult = () => setExpiredTradeResult(null);
 
   const [hideBalance, setHideBalance] = useState<boolean>(false);
 
@@ -189,6 +208,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
+  const [cryptoAddresses, setCryptoAddresses] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CRYPTO_ADDRESSES);
+      if (saved) {
+        return { ...DEFAULT_CRYPTO_ADDRESSES, ...JSON.parse(saved) };
+      }
+    } catch {}
+    return DEFAULT_CRYPTO_ADDRESSES;
+  });
+
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_DEPOSIT_REQUESTS);
@@ -198,7 +227,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  // 1. Firebase Firestore Real-Time Listener: TRC20 Wallet Address
+  // 1. Firebase Firestore Real-Time Listener: Payment Addresses Config
   useEffect(() => {
     try {
       const configRef = doc(db, 'system_settings', 'payment_config');
@@ -206,16 +235,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsFirebaseConnected(true);
         if (snapshot.exists()) {
           const data = snapshot.data();
-          if (data && typeof data.trc20WalletAddress === 'string' && data.trc20WalletAddress.trim()) {
-            setTrc20WalletAddress(data.trc20WalletAddress.trim());
-            localStorage.setItem(STORAGE_KEY_TRC20_ADDRESS, data.trc20WalletAddress.trim());
+          if (data) {
+            if (typeof data.trc20WalletAddress === 'string' && data.trc20WalletAddress.trim()) {
+              setTrc20WalletAddress(data.trc20WalletAddress.trim());
+              localStorage.setItem(STORAGE_KEY_TRC20_ADDRESS, data.trc20WalletAddress.trim());
+            }
+            if (data.cryptoAddresses && typeof data.cryptoAddresses === 'object') {
+              const merged = { ...DEFAULT_CRYPTO_ADDRESSES, ...data.cryptoAddresses };
+              setCryptoAddresses(merged);
+              localStorage.setItem(STORAGE_KEY_CRYPTO_ADDRESSES, JSON.stringify(merged));
+            }
           }
         } else {
           // Initialize document in Firestore if not present yet
           setDoc(configRef, {
             trc20WalletAddress: 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc',
-            network: 'TRC20',
-            currency: 'USDT',
+            cryptoAddresses: DEFAULT_CRYPTO_ADDRESSES,
             updatedAt: new Date().toISOString()
           }, { merge: true }).catch(() => {});
         }
@@ -228,87 +263,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // 2. Firebase Firestore Real-Time Listener: Deposit Requests Queue
   useEffect(() => {
-    try {
-      const q = query(collection(db, 'deposit_requests'), orderBy('timestamp', 'desc'), limit(100));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        setIsFirebaseConnected(true);
-        if (!snapshot.empty) {
-          const cloudRequests: DepositRequest[] = [];
-          snapshot.forEach((docItem) => {
-            const data = docItem.data();
-            cloudRequests.push({
-              id: docItem.id,
-              userId: data.userId || '',
-              userName: data.userName || 'Anonymous Trader',
-              userEmail: data.userEmail || '',
-              amount: Number(data.amount || 0),
-              network: data.network || 'TRC20',
-              txHash: data.txHash || '',
-              status: data.status || 'pending_review',
-              timestamp: data.timestamp || new Date().toISOString()
-            });
-          });
-          setDepositRequests(cloudRequests);
-          localStorage.setItem(STORAGE_KEY_DEPOSIT_REQUESTS, JSON.stringify(cloudRequests));
-        }
-      }, (err) => {
-        console.warn('Firestore deposit_requests notice (fallback to local):', err.message);
-      });
-      return () => unsubscribe();
-    } catch (e) {
-      console.warn('Firestore deposit listener failed:', e);
-    }
-  }, []);
+    localStorage.setItem(STORAGE_KEY_CRYPTO_ADDRESSES, JSON.stringify(cryptoAddresses));
+  }, [cryptoAddresses]);
 
-  // 3. Firebase Firestore Real-Time Listener: Active User Balance Live Updates
-  useEffect(() => {
-    if (!currentUser?.id) return;
-    try {
-      const userDocRef = doc(db, 'users', currentUser.id);
-      const unsubscribe = onSnapshot(userDocRef, (snap) => {
-        if (snap.exists()) {
-          const data = snap.data();
-          if (data && typeof data.balance === 'number' && data.balance !== currentUser.balance) {
-            setCurrentUser(prev => prev ? { ...prev, balance: Number(data.balance.toFixed(2)) } : null);
-          }
-        }
-      }, (err) => {
-        console.warn('Firestore user balance notice:', err.message);
-      });
-      return () => unsubscribe();
-    } catch (e) {
-      console.warn('Firestore user listener failed:', e);
-    }
-  }, [currentUser?.id]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_TRC20_ADDRESS, trc20WalletAddress);
-  }, [trc20WalletAddress]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_DEPOSIT_REQUESTS, JSON.stringify(depositRequests));
-  }, [depositRequests]);
-
-  const updateTrc20WalletAddress = (address: string) => {
-    if (!address.trim()) return;
+  const updateCryptoAddress = (cryptoId: string, address: string) => {
+    if (!cryptoId || !address.trim()) return;
     const cleanAddr = address.trim();
-    setTrc20WalletAddress(cleanAddr);
-    localStorage.setItem(STORAGE_KEY_TRC20_ADDRESS, cleanAddr);
+    const updated = { ...cryptoAddresses, [cryptoId]: cleanAddr };
+    if (cryptoId === 'usdt-trc20') {
+      setTrc20WalletAddress(cleanAddr);
+      localStorage.setItem(STORAGE_KEY_TRC20_ADDRESS, cleanAddr);
+    }
+    setCryptoAddresses(updated);
+    localStorage.setItem(STORAGE_KEY_CRYPTO_ADDRESSES, JSON.stringify(updated));
 
-    // Sync to Firestore in real time
     try {
       const configRef = doc(db, 'system_settings', 'payment_config');
       setDoc(configRef, {
-        trc20WalletAddress: cleanAddr,
+        trc20WalletAddress: updated['usdt-trc20'] || cleanAddr,
+        cryptoAddresses: updated,
         updatedAt: new Date().toISOString()
       }, { merge: true }).catch((err) => {
-        console.warn('Firestore update payment_config warning:', err);
+        console.warn('Firestore update cryptoAddresses warning:', err);
       });
     } catch (e) {
-      console.warn('Firestore update payment_config error:', e);
+      console.warn('Firestore update cryptoAddresses error:', e);
     }
+  };
+
+  const updateAllCryptoAddresses = (newAddresses: Record<string, string>) => {
+    const merged = { ...cryptoAddresses, ...newAddresses };
+    setCryptoAddresses(merged);
+    localStorage.setItem(STORAGE_KEY_CRYPTO_ADDRESSES, JSON.stringify(merged));
+    if (merged['usdt-trc20']) {
+      setTrc20WalletAddress(merged['usdt-trc20']);
+      localStorage.setItem(STORAGE_KEY_TRC20_ADDRESS, merged['usdt-trc20']);
+    }
+
+    try {
+      const configRef = doc(db, 'system_settings', 'payment_config');
+      setDoc(configRef, {
+        trc20WalletAddress: merged['usdt-trc20'] || trc20WalletAddress,
+        cryptoAddresses: merged,
+        updatedAt: new Date().toISOString()
+      }, { merge: true }).catch((err) => {
+        console.warn('Firestore update all cryptoAddresses warning:', err);
+      });
+    } catch (e) {
+      console.warn('Firestore update all cryptoAddresses error:', e);
+    }
+  };
+
+  const updateTrc20WalletAddress = (address: string) => {
+    updateCryptoAddress('usdt-trc20', address);
   };
 
   const submitDepositRequest = (amount: number, network: string, txHash: string) => {
@@ -829,6 +837,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         status: isWon ? 'won' : 'lost'
       };
 
+      // Set for trade result popup modal
+      setExpiredTradeResult(updatedTrade);
+
       const next = [...prevTrades];
       next[tradeIndex] = updatedTrade;
       return next;
@@ -858,11 +869,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         todayPnl,
         trc20WalletAddress,
         updateTrc20WalletAddress,
+        cryptoAddresses,
+        updateCryptoAddress,
+        updateAllCryptoAddresses,
         depositRequests,
         submitDepositRequest,
         approveDepositRequest,
         rejectDepositRequest,
-        isFirebaseConnected
+        isFirebaseConnected,
+        expiredTradeResult,
+        clearExpiredTradeResult
       }}
     >
       {children}
