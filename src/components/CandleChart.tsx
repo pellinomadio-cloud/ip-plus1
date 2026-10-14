@@ -12,9 +12,7 @@ import {
   Info,
   X,
   Maximize2,
-  Minimize2,
-  ZoomIn,
-  ZoomOut
+  Minimize2
 } from 'lucide-react';
 
 interface CandleChartProps {
@@ -363,7 +361,7 @@ export const CandleChart: React.FC<CandleChartProps> = ({
       onTouchEnd={handleTouchEnd}
       onWheel={handleWheelZoom}
     >
-      {/* Top Header Bar: Live status, OHLC inspection details, Market direction badge */}
+      {/* Top Header Bar: Live status, OHLC inspection details, Market direction badge, Fullscreen toggle */}
       <div className="absolute top-2.5 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-1 text-xs font-semibold pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
           <span className="flex items-center gap-1.5 text-emerald-400 font-mono">
@@ -385,8 +383,8 @@ export const CandleChart: React.FC<CandleChartProps> = ({
           )}
         </div>
 
-        {/* Dynamic Live Market Direction Badge */}
-        <div className="flex items-center gap-1.5 pointer-events-auto">
+        {/* Dynamic Live Market Direction Badge & Controls */}
+        <div className="flex items-center gap-2 pointer-events-auto">
           <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-colors ${
             isMarketGoingUp 
               ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
@@ -395,12 +393,40 @@ export const CandleChart: React.FC<CandleChartProps> = ({
             <span>{isMarketGoingUp ? '▲ Up' : '▼ Down'}</span>
           </div>
 
+          {/* Reset Zoom Pill (Only appears if user zoomed via pinch/wheel) */}
+          {zoomLevel !== 1.0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleResetZoom();
+              }}
+              className="px-2 py-0.5 text-[10px] font-bold font-mono rounded-full bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 transition-colors"
+              title="Reset Zoom to 100%"
+            >
+              Reset Zoom
+            </button>
+          )}
+
           {/* Scroll / History Indicator */}
           {safeOffset > 0 && (
-            <div className="bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1 pointer-events-auto">
+            <div className="bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1">
               <Clock className="w-3 h-3" />
               <span>History ({safeOffset} back)</span>
             </div>
+          )}
+
+          {/* Fullscreen Toggle */}
+          {onToggleFullScreen && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFullScreen();
+              }}
+              className="p-1 rounded-lg bg-[#0d1320]/90 hover:bg-slate-800 border border-slate-800 text-amber-400 hover:text-amber-300 transition-colors ml-1"
+              title={isFullScreen ? "Exit Full Screen" : "Full Screen Chart"}
+            >
+              {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
           )}
         </div>
       </div>
@@ -418,90 +444,6 @@ export const CandleChart: React.FC<CandleChartProps> = ({
           <span>Jump to Live</span>
         </button>
       )}
-
-      {/* Floating Controls Toolbar: Zoom In, Zoom Out, Zoom Level Badge, Step Scroll, Fullscreen */}
-      <div className="absolute top-10 right-3 z-20 flex items-center gap-1.5 pointer-events-auto bg-[#0d1320]/90 backdrop-blur-md p-1 rounded-xl border border-slate-800/80 shadow-lg">
-        {/* Zoom Controls */}
-        <div className="flex items-center gap-0.5 bg-[#141B27] rounded-lg p-0.5 border border-slate-800">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleZoomIn();
-            }}
-            className="p-1 rounded-md hover:bg-slate-800 text-slate-200 hover:text-white transition-colors"
-            title="Zoom In on Candles (+)"
-          >
-            <ZoomIn className="w-3.5 h-3.5 text-amber-400" />
-          </button>
-
-          <span className="px-1 text-[10px] font-mono font-bold text-amber-300 min-w-[34px] text-center select-none">
-            {Math.round(zoomLevel * 100)}%
-          </span>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleZoomOut();
-            }}
-            className="p-1 rounded-md hover:bg-slate-800 text-slate-200 hover:text-white transition-colors"
-            title="Zoom Out on Candles (-)"
-          >
-            <ZoomOut className="w-3.5 h-3.5 text-slate-300" />
-          </button>
-
-          {zoomLevel !== 1.0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleResetZoom();
-              }}
-              className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors ml-0.5"
-              title="Reset Zoom to 100%"
-            >
-              Reset
-            </button>
-          )}
-        </div>
-
-        {/* Pan / History Step Buttons */}
-        <div className="flex items-center gap-0.5 bg-[#141B27] rounded-lg p-0.5 border border-slate-800">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setScrollOffset(prev => Math.min(prev + 5, maxScroll));
-            }}
-            className="p-1 rounded-md hover:bg-slate-800 text-slate-300 hover:text-white"
-            title="Scroll Back in Time"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setScrollOffset(prev => Math.max(0, prev - 5));
-            }}
-            disabled={safeOffset === 0}
-            className="p-1 rounded-md hover:bg-slate-800 text-slate-300 hover:text-white disabled:opacity-30"
-            title="Scroll Forward"
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* Fullscreen Toggle */}
-        {onToggleFullScreen && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFullScreen();
-            }}
-            className="p-1.5 rounded-lg bg-[#141B27] hover:bg-slate-800 border border-slate-800 text-amber-400 hover:text-amber-300 transition-colors"
-            title={isFullScreen ? "Exit Full Screen" : "Full Screen Chart (Clear View)"}
-          >
-            {isFullScreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-          </button>
-        )}
-      </div>
 
       <svg
         viewBox={`0 0 ${width} ${height}`}
