@@ -50,7 +50,7 @@ export interface Position {
 
 export interface Transaction {
   id: string;
-  type: 'deposit' | 'withdrawal' | 'trade_profit' | 'trade_loss';
+  type: 'deposit' | 'withdrawal' | 'trade_profit' | 'trade_loss' | 'investment' | 'investment_yield';
   amount: number;
   status: 'completed' | 'pending' | 'processing';
   timestamp: string;
@@ -110,16 +110,38 @@ export interface ChatMessage {
   };
 }
 
+export interface StaffManagementAccount {
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  exchangeRateNgn: number;
+  paymentInstructions?: string;
+  updatedAt?: string;
+}
+
 export interface DepositRequest {
   id: string;
   userId: string;
   userName: string;
   userEmail: string;
+  userPhone?: string;
   amount: number;
+  ngnAmount?: number;
+  depositType?: 'crypto' | 'bank_transfer';
   network: string;
   txHash: string;
+  proofImageUrl?: string;
+  proofFileName?: string;
+  senderName?: string;
+  senderBank?: string;
+  staffAccountDetails?: {
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+  };
   status: 'pending_review' | 'completed' | 'rejected';
   timestamp: string;
+  approvedAt?: string;
 }
 
 export type NavTab = 'home' | 'trade' | 'wallet' | 'funds_wallet' | 'history' | 'settings' | 'admin_dashboard';
@@ -135,5 +157,39 @@ export interface PriceAlert {
   triggeredAt?: number;
   note?: string;
   soundEnabled?: boolean;
+}
+
+export interface InvestmentPlan {
+  id: string;
+  name: string;
+  cryptoSymbol: string;
+  cryptoName: string;
+  iconType: 'btc' | 'eth' | 'sol' | 'crypto';
+  badge: string;
+  apyPercent: number;
+  dailyPercent: number;
+  durationDays: number;
+  minInvestment: number;
+  maxInvestment: number;
+  riskLevel: 'Low' | 'Moderate' | 'High';
+  description: string;
+  highlights: string[];
+}
+
+export interface UserInvestment {
+  id: string;
+  planId: string;
+  planName: string;
+  cryptoSymbol: string;
+  investedAmount: number;
+  startDate: string;
+  endDate: string;
+  durationDays: number;
+  apyPercent: number;
+  dailyProfitAmount: number;
+  accruedEarnings: number;
+  claimedEarnings: number;
+  status: 'active' | 'completed' | 'cancelled';
+  lastAccrualTimestamp: number;
 }
 

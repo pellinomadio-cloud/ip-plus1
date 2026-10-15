@@ -92,13 +92,15 @@ export const WalletView: React.FC<WalletViewProps> = ({ onOpenDeposit, onOpenWit
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    tx.type === 'deposit'
+                    tx.type === 'deposit' || tx.type === 'investment_yield'
                       ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                       : tx.type === 'withdrawal'
                       ? 'bg-amber-400/10 text-amber-400 border border-amber-400/20'
+                      : tx.type === 'investment'
+                      ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                       : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                   }`}>
-                    {tx.type === 'deposit' ? <ArrowDownToLine className="w-4 h-4" /> : <ArrowUpToLine className="w-4 h-4" />}
+                    {tx.type === 'deposit' || tx.type === 'investment_yield' ? <ArrowDownToLine className="w-4 h-4" /> : <ArrowUpToLine className="w-4 h-4" />}
                   </div>
                   <div>
                     <h5 className="font-bold text-white flex items-center gap-1.5">
@@ -116,11 +118,11 @@ export const WalletView: React.FC<WalletViewProps> = ({ onOpenDeposit, onOpenWit
 
                 <div className="text-right">
                   <div className={`font-mono font-bold ${
-                    tx.type === 'deposit' || tx.type === 'trade_profit'
+                    tx.type === 'deposit' || tx.type === 'trade_profit' || tx.type === 'investment_yield'
                       ? 'text-emerald-400'
                       : 'text-rose-400'
                   }`}>
-                    {tx.type === 'deposit' || tx.type === 'trade_profit' ? '+' : '-'}
+                    {tx.type === 'deposit' || tx.type === 'trade_profit' || tx.type === 'investment_yield' ? '+' : '-'}
                     {formatCurrency(tx.amount)}
                   </div>
                   {tx.destinationDetails?.ngnAmount && (
@@ -128,7 +130,17 @@ export const WalletView: React.FC<WalletViewProps> = ({ onOpenDeposit, onOpenWit
                       ≈ ₦{tx.destinationDetails.ngnAmount.toLocaleString()} NGN
                     </span>
                   )}
-                  <span className="text-[10px] text-slate-500 uppercase">{tx.status}</span>
+                  {tx.status === 'pending' ? (
+                    <span className="text-[9px] text-amber-300 font-mono font-bold uppercase bg-amber-400/15 px-1.5 py-0.5 rounded border border-amber-400/30 inline-block mt-0.5">
+                      ⏳ Pending Approval
+                    </span>
+                  ) : tx.status === 'processing' ? (
+                    <span className="text-[9px] text-rose-400 font-mono font-bold uppercase bg-rose-500/15 px-1.5 py-0.5 rounded border border-rose-500/30 inline-block mt-0.5">
+                      Rejected
+                    </span>
+                  ) : (
+                    <span className="text-[9px] text-slate-500 uppercase">{tx.status}</span>
+                  )}
                 </div>
               </div>
 

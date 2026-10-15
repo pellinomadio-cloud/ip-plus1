@@ -9,7 +9,8 @@ import {
   Sparkles, 
   CheckCircle2, 
   ChevronDown, 
-  Search
+  Search,
+  Phone
 } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { useAuth } from '../context/AuthContext';
@@ -60,6 +61,10 @@ export const AuthScreen: React.FC = () => {
       }
       if (password !== confirmPassword) {
         setError('Passwords do not match.');
+        return;
+      }
+      if (!phoneNumber.trim()) {
+        setError('Please enter your phone number.');
         return;
       }
       if (!agreedTerms) {
@@ -256,6 +261,25 @@ export const AuthScreen: React.FC = () => {
                       </div>
                     </>
                   )}
+                </div>
+              </div>
+
+              {/* Mobile Phone Number */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Phone Number</label>
+                <div className="flex rounded-xl overflow-hidden border border-slate-800 focus-within:border-amber-400/60 focus-within:ring-1 focus-within:ring-amber-400/40 bg-[#0B0F17] transition-all">
+                  <div className="px-3 py-2.5 bg-[#141B27] border-r border-slate-800 text-slate-300 text-xs font-mono font-semibold flex items-center gap-1.5 shrink-0 select-none">
+                    <span>{selectedCountry.flag}</span>
+                    <span className="text-amber-400">{selectedCountry.dialCode}</span>
+                  </div>
+                  <input
+                    type="tel"
+                    required
+                    placeholder={selectedCountry.code === 'NG' ? '801 234 5678' : 'Phone number'}
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="flex-1 px-3 py-2.5 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none"
+                  />
                 </div>
               </div>
             </>

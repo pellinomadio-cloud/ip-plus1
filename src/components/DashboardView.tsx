@@ -9,6 +9,7 @@ import { MarketAsset } from '../types';
 interface DashboardViewProps {
   onOpenWallet: () => void;
   onOpenWithdraw: () => void;
+  onOpenInvest: () => void;
   onOpenTrade: () => void;
   onSelectAssetToTrade: (asset: MarketAsset) => void;
   onViewAllMarkets?: () => void;
@@ -17,6 +18,7 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenWallet,
   onOpenWithdraw,
+  onOpenInvest,
   onOpenTrade,
   onSelectAssetToTrade,
   onViewAllMarkets
@@ -31,11 +33,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <BalanceCard />
       </div>
 
-      {/* Action Cards: Funds Wallet | Withdraw | Trade */}
+      {/* Action Cards: Funds Wallet | Withdraw | Invest | Trade */}
       <div className="px-4">
         <ActionCards
           onOpenWallet={onOpenWallet}
           onOpenWithdraw={onOpenWithdraw}
+          onOpenInvest={onOpenInvest}
           onOpenTrade={onOpenTrade}
         />
       </div>

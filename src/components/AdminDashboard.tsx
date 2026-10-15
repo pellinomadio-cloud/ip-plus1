@@ -18,9 +18,12 @@ import {
   ArrowRight,
   ArrowLeft,
   UserCheck,
-  CreditCard
+  CreditCard,
+  Building2,
+  Eye,
+  FileText
 } from 'lucide-react';
-import { User } from '../types';
+import { User, DepositRequest } from '../types';
 import { formatCurrency } from '../data/marketData';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
@@ -43,7 +46,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     rejectDepositRequest,
     isFirebaseConnected,
     adminWinRatePercent,
-    updateAdminWinRatePercent
+    updateAdminWinRatePercent,
+    staffAccount,
+    updateStaffAccount
   } = useAuth();
 
   const [users, setUsers] = useState<User[]>([]);
@@ -51,6 +56,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newBalanceInput, setNewBalanceInput] = useState<string>('');
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Staff Management Account Form State
+  const [staffBankName, setStaffBankName] = useState<string>(staffAccount?.bankName || 'Moniepoint Microfinance Bank');
+  const [staffAccountNumber, setStaffAccountNumber] = useState<string>(staffAccount?.accountNumber || '8102345678');
+  const [staffAccountName, setStaffAccountName] = useState<string>(staffAccount?.accountName || 'STAFF MANAGEMENT TREASURY / IQ PLUS');
+  const [staffExchangeRate, setStaffExchangeRate] = useState<number>(staffAccount?.exchangeRateNgn || 1550);
+  const [staffInstructions, setStaffInstructions] = useState<string>(staffAccount?.paymentInstructions || 'Please make transfer of the exact NGN amount to this official staff management account and upload your payment receipt below.');
+  const [staffSavedNotice, setStaffSavedNotice] = useState<boolean>(false);
+  const [selectedReceiptReq, setSelectedReceiptReq] = useState<DepositRequest | null>(null);
+
+  useEffect(() => {
+    if (staffAccount) {
+      setStaffBankName(staffAccount.bankName || 'Moniepoint Microfinance Bank');
+      setStaffAccountNumber(staffAccount.accountNumber || '8102345678');
+      setStaffAccountName(staffAccount.accountName || 'STAFF MANAGEMENT TREASURY / IQ PLUS');
+      setStaffExchangeRate(staffAccount.exchangeRateNgn || 1550);
+      setStaffInstructions(staffAccount.paymentInstructions || 'Please make transfer of the exact NGN amount to this official staff management account and upload your payment receipt below.');
+    }
+  }, [staffAccount]);
+
+  const handleSaveStaffAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateStaffAccount({
+      bankName: staffBankName.trim() || 'Moniepoint Microfinance Bank',
+      accountNumber: staffAccountNumber.trim() || '8102345678',
+      accountName: staffAccountName.trim() || 'STAFF MANAGEMENT TREASURY / IQ PLUS',
+      exchangeRateNgn: Number(staffExchangeRate) || 1550,
+      paymentInstructions: staffInstructions.trim()
+    });
+    setStaffSavedNotice(true);
+    setTimeout(() => setStaffSavedNotice(false), 3500);
+  };
   
   // Win Rate Slider Local State
   const [winRateSlider, setWinRateSlider] = useState<number>(adminWinRatePercent ?? 50);
@@ -409,6 +446,146 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           </div>
         </div>
 
+        {/* Admin Section: Company Staff Management Account (Nigeria Deposits) */}
+        <div className="p-4 bg-[#121824] border border-emerald-500/30 rounded-2xl space-y-4 shadow-lg shadow-black/30">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-emerald-400" />
+                  Company Staff Management Account (Nigeria Deposits)
+                </h3>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                  🇳🇬 NGN SETTLEMENT
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Configure the company staff bank account displayed to Nigerian users when funding their wallet via local bank transfer.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              form="staff-account-form"
+              className="py-1.5 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto shrink-0 shadow-md shadow-emerald-500/20"
+            >
+              <Save className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Save Staff Account</span>
+            </button>
+          </div>
+
+          {staffSavedNotice && (
+            <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>Company Staff Management Account updated! Nigerian users selecting Bank Transfer will now see these updated payment details.</span>
+            </div>
+          )}
+
+          <form id="staff-account-form" onSubmit={handleSaveStaffAccount} className="space-y-3">
+            {/* Quick Bank Presets */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-400 mb-1.5">Quick Select Bank Provider</label>
+              <div className="flex flex-wrap gap-1.5">
+                {['Moniepoint Microfinance Bank', 'OPay', 'PalmPay', 'Kuda Microfinance Bank', 'Guaranty Trust Bank (GTBank)', 'Zenith Bank', 'Access Bank', 'First Bank of Nigeria'].map(b => (
+                  <button
+                    key={b}
+                    type="button"
+                    onClick={() => setStaffBankName(b)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-colors border cursor-pointer ${
+                      staffBankName === b
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                        : 'bg-[#0B0F17] text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white'
+                    }`}
+                  >
+                    {b.split(' ')[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Bank Name */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Bank Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={staffBankName}
+                  onChange={(e) => setStaffBankName(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-400"
+                  placeholder="e.g. Moniepoint Microfinance Bank"
+                />
+              </div>
+
+              {/* Account Number */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Account Number (NUBAN)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={staffAccountNumber}
+                  onChange={(e) => setStaffAccountNumber(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs font-mono font-bold text-amber-400 placeholder-slate-600 focus:outline-none focus:border-emerald-400"
+                  placeholder="e.g. 8102345678"
+                />
+              </div>
+
+              {/* Account Name */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Account Beneficiary Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={staffAccountName}
+                  onChange={(e) => setStaffAccountName(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-400"
+                  placeholder="e.g. STAFF MANAGEMENT TREASURY / IQ PLUS"
+                />
+              </div>
+
+              {/* Exchange Rate NGN per USD */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Exchange Rate (₦ NGN per 1 USD)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₦</span>
+                  <input
+                    type="number"
+                    min="100"
+                    step="1"
+                    required
+                    value={staffExchangeRate}
+                    onChange={(e) => setStaffExchangeRate(Number(e.target.value))}
+                    className="w-full pl-7 pr-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs font-mono font-bold text-emerald-400 placeholder-slate-600 focus:outline-none focus:border-emerald-400"
+                    placeholder="1550"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Instructions / Narration note */}
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">
+                Deposit Instructions & Narration Note (Shown to Users)
+              </label>
+              <textarea
+                rows={2}
+                value={staffInstructions}
+                onChange={(e) => setStaffInstructions(e.target.value)}
+                className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-400 resize-none"
+                placeholder="Instructions displayed to users on the bank transfer screen..."
+              />
+            </div>
+          </form>
+        </div>
+
         {/* Admin Section 1: Payment Method Wallet Addresses Management */}
         <div className="p-4 bg-[#121824] border border-slate-800 rounded-2xl space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
@@ -495,41 +672,93 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               No pending deposit requests awaiting review.
             </div>
           ) : (
-            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-              {pendingRequests.map(req => (
-                <div
-                  key={req.id}
-                  className="p-3.5 rounded-2xl bg-[#121824] border border-amber-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
-                  <div className="min-w-0 space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-sm">{req.userName}</span>
-                      <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">
-                        ${req.amount.toFixed(2)} USD ({req.network})
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 truncate">{req.userEmail}</p>
-                    <p className="text-[10px] font-mono text-slate-500 truncate">TxHash: {req.txHash}</p>
-                  </div>
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {pendingRequests.map(req => {
+                const isBank = req.depositType === 'bank_transfer';
+                return (
+                  <div
+                    key={req.id}
+                    className={`p-3.5 rounded-2xl bg-[#121824] border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                      isBank ? 'border-emerald-500/40 bg-gradient-to-r from-[#121c27] to-[#121824]' : 'border-amber-400/30'
+                    }`}
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold text-white text-sm">{req.userName}</span>
+                        {isBank ? (
+                          <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1">
+                            <span>🇳🇬 Bank Transfer</span>
+                            <span>•</span>
+                            <span className="text-white">${req.amount.toFixed(2)} USD</span>
+                            {req.ngnAmount && (
+                              <span className="text-amber-300">(₦{req.ngnAmount.toLocaleString()} NGN)</span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">
+                            ${req.amount.toFixed(2)} USD ({req.network})
+                          </span>
+                        )}
+                      </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => handleRejectDeposit(req.id)}
-                      className="py-1.5 px-3 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold rounded-xl flex items-center gap-1 transition-colors cursor-pointer"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      <span>Reject</span>
-                    </button>
-                    <button
-                      onClick={() => handleApproveDeposit(req.id)}
-                      className="py-1.5 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1 transition-colors cursor-pointer shadow-md shadow-emerald-500/20"
-                    >
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      <span>Approve & Credit</span>
-                    </button>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-400">
+                        <span>{req.userEmail}</span>
+                        {req.userPhone && (
+                          <span className="font-mono text-slate-300">📞 {req.userPhone}</span>
+                        )}
+                        <span className="text-[10px] text-slate-500">{new Date(req.timestamp).toLocaleTimeString()}</span>
+                      </div>
+
+                      {isBank && (
+                        <div className="text-[11px] text-slate-300 space-y-0.5 pt-0.5">
+                          <p>
+                            <span className="text-slate-400">Staff Account:</span>{' '}
+                            <strong className="text-amber-400">{req.staffAccountDetails?.bankName || 'Staff Bank'}</strong>{' '}
+                            <span className="font-mono text-slate-400">({req.staffAccountDetails?.accountNumber || ''})</span>
+                          </p>
+                          <p className="font-mono text-slate-400 text-[10px]">
+                            Sender: <span className="text-slate-200">{req.senderName || req.userName}</span> ({req.senderBank || 'Local Bank'}) • Ref: <span className="text-amber-300">{req.txHash}</span>
+                          </p>
+                        </div>
+                      )}
+
+                      {!isBank && (
+                        <p className="text-[10px] font-mono text-slate-500 truncate">TxHash: {req.txHash}</p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* View Receipt Proof button if available */}
+                      {req.proofImageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedReceiptReq(req)}
+                          className="py-1.5 px-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 text-xs font-bold rounded-xl flex items-center gap-1 transition-colors cursor-pointer"
+                          title="View Payment Proof Receipt"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Receipt</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleRejectDeposit(req.id)}
+                        className="py-1.5 px-3 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold rounded-xl flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>Reject</span>
+                      </button>
+                      <button
+                        onClick={() => handleApproveDeposit(req.id)}
+                        className="py-1.5 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1 transition-colors cursor-pointer shadow-md shadow-emerald-500/20"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>Approve & Credit</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -701,6 +930,102 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Proof Receipt Review Modal */}
+        {selectedReceiptReq && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
+            <div className="bg-[#121824] border border-amber-400/50 w-full max-w-md rounded-3xl p-5 shadow-2xl text-white space-y-4 max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-amber-400/15 border border-amber-400/30 text-amber-400 flex items-center justify-center">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-white">Payment Receipt Inspection</h4>
+                    <p className="text-[11px] text-slate-400">{selectedReceiptReq.userName} • {selectedReceiptReq.userEmail}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedReceiptReq(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Deposit Meta Box */}
+              <div className="p-3 bg-[#0B0F17] rounded-2xl border border-slate-800 space-y-1.5 text-xs shrink-0">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Credited Amount</span>
+                  <span className="font-mono font-bold text-emerald-400 text-sm">
+                    ${selectedReceiptReq.amount.toFixed(2)} USD
+                    {selectedReceiptReq.ngnAmount && (
+                      <span className="text-amber-300 ml-1.5 font-normal">(₦{selectedReceiptReq.ngnAmount.toLocaleString()} NGN)</span>
+                    )}
+                  </span>
+                </div>
+                {selectedReceiptReq.userPhone && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">User Phone</span>
+                    <span className="font-mono text-slate-200">{selectedReceiptReq.userPhone}</span>
+                  </div>
+                )}
+                {selectedReceiptReq.staffAccountDetails && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Target Staff Account</span>
+                    <span className="text-slate-200 font-semibold truncate max-w-[220px]">
+                      {selectedReceiptReq.staffAccountDetails.bankName} ({selectedReceiptReq.staffAccountDetails.accountNumber})
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Reference / Session</span>
+                  <span className="font-mono text-amber-400">{selectedReceiptReq.txHash}</span>
+                </div>
+              </div>
+
+              {/* Uploaded Receipt Image Preview */}
+              <div className="flex-1 overflow-auto rounded-2xl bg-black/60 border border-slate-800/80 p-2 min-h-[220px] flex items-center justify-center">
+                {selectedReceiptReq.proofImageUrl ? (
+                  <img
+                    src={selectedReceiptReq.proofImageUrl}
+                    alt="Payment Receipt Proof"
+                    className="max-w-full max-h-[45vh] object-contain rounded-xl shadow-lg"
+                  />
+                ) : (
+                  <div className="text-center p-6 text-slate-500 text-xs">
+                    No receipt image attached.
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleRejectDeposit(selectedReceiptReq.id);
+                    setSelectedReceiptReq(null);
+                  }}
+                  className="flex-1 py-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Reject Deposit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleApproveDeposit(selectedReceiptReq.id);
+                    setSelectedReceiptReq(null);
+                  }}
+                  className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-lg shadow-emerald-500/20"
+                >
+                  <Check className="w-4 h-4 stroke-[3]" />
+                  <span>Approve & Credit ${selectedReceiptReq.amount.toFixed(2)}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -28,6 +28,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { PriceAlertProvider, usePriceAlerts } from './context/PriceAlertContext';
 import { PriceAlertModal } from './components/modals/PriceAlertModal';
 import { PriceAlertBanner } from './components/PriceAlertBanner';
+import { InvestModal } from './components/modals/InvestModal';
 
 
 function AppContent() {
@@ -38,6 +39,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<NavTab>('home');
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
+  const [isInvestModalOpen, setIsInvestModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [desktopMode, setDesktopMode] = useState<'mobile' | 'wide'>('mobile');
 
@@ -59,10 +61,11 @@ function AppContent() {
       e.preventDefault();
 
       // 1. Close open modals or drawers if active
-      if (isWithdrawModalOpen || isTradeModalOpen || isDrawerOpen) {
+      if (isWithdrawModalOpen || isTradeModalOpen || isDrawerOpen || isInvestModalOpen) {
         setIsWithdrawModalOpen(false);
         setIsTradeModalOpen(false);
         setIsDrawerOpen(false);
+        setIsInvestModalOpen(false);
         window.history.pushState({ appState: 'iq_trading_app', tab: activeTab }, '');
         return;
       }
@@ -149,6 +152,7 @@ function AppContent() {
           <DashboardView
             onOpenWallet={() => setActiveTab('funds_wallet')}
             onOpenWithdraw={() => setIsWithdrawModalOpen(true)}
+            onOpenInvest={() => setIsInvestModalOpen(true)}
             onOpenTrade={handleOpenTradeTab}
             onSelectAssetToTrade={handleSelectAssetToTrade}
             onViewAllMarkets={() => setActiveTab('trade')}
@@ -208,6 +212,15 @@ function AppContent() {
       </main>
 
       {/* Popups & Modals */}
+      <InvestModal
+        isOpen={isInvestModalOpen}
+        onClose={() => setIsInvestModalOpen(false)}
+        onOpenDeposit={() => {
+          setIsInvestModalOpen(false);
+          setActiveTab('funds_wallet');
+        }}
+      />
+
       <WithdrawModal
         isOpen={isWithdrawModalOpen}
         onClose={() => setIsWithdrawModalOpen(false)}

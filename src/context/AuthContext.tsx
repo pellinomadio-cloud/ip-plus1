@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Position, Transaction, QuickTrade, DepositRequest } from '../types';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { User, Position, Transaction, QuickTrade, DepositRequest, UserInvestment, StaffManagementAccount } from '../types';
+import { INVESTMENT_PLANS } from '../data/investmentPlans';
 import { recordTradeResultOnCandles } from '../utils/candleGenerator';
 import { db } from '../firebase';
 import { 
@@ -24,6 +25,25 @@ const STORAGE_KEY_TRC20_ADDRESS = 'iq_plus_trc20_address';
 const STORAGE_KEY_CRYPTO_ADDRESSES = 'iq_plus_crypto_addresses';
 const STORAGE_KEY_DEPOSIT_REQUESTS = 'iq_plus_deposit_requests';
 const STORAGE_KEY_ADMIN_WIN_RATE = 'iq_plus_admin_win_rate';
+const STORAGE_KEY_INVESTMENTS = 'iq_plus_user_investments';
+const STORAGE_KEY_STAFF_ACCOUNT = 'iq_plus_staff_management_account';
+
+export const isNigeriaPhoneUser = (user: User | null | undefined): boolean => {
+  if (!user) return false;
+  const phone = (user.phoneNumber || '').trim();
+  if (phone.startsWith('+234') || phone.startsWith('234')) return true;
+  if ((user.countryCode === 'NG' || (user.country || '').toLowerCase() === 'nigeria') && phone.length > 0) return true;
+  if (user.countryCode === 'NG' || (user.country || '').toLowerCase() === 'nigeria') return true;
+  return false;
+};
+
+export const DEFAULT_STAFF_ACCOUNT: StaffManagementAccount = {
+  bankName: 'Moniepoint Microfinance Bank',
+  accountNumber: '8102345678',
+  accountName: 'STAFF MANAGEMENT TREASURY / IQ PLUS',
+  exchangeRateNgn: 1550,
+  paymentInstructions: 'Please make transfer of the exact NGN amount to this official staff management account and upload your payment receipt below.'
+};
 
 export const DEFAULT_CRYPTO_ADDRESSES: Record<string, string> = {
   'usdt-trc20': 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc',
@@ -70,6 +90,8 @@ interface AuthContextType {
   updateCryptoAddress: (cryptoId: string, address: string) => void;
   updateAllCryptoAddresses: (addresses: Record<string, string>) => void;
   depositRequests: DepositRequest[];
+  hasPendingDeposit: boolean;
+  userPendingDeposit: DepositRequest | null;
   submitDepositRequest: (amount: number, network: string, txHash: string) => void;
   approveDepositRequest: (requestId: string) => { success: boolean; message: string };
   rejectDepositRequest: (requestId: string) => { success: boolean; message: string };
@@ -78,6 +100,22 @@ interface AuthContextType {
   clearExpiredTradeResult: () => void;
   adminWinRatePercent: number;
   updateAdminWinRatePercent: (rate: number) => void;
+  investments: UserInvestment[];
+  createInvestment: (planId: string, amount: number) => { success: boolean; message: string };
+  claimInvestmentEarnings: (investmentId?: string) => { success: boolean; message: string; amountClaimed?: number };
+  settleDailyYield: (investmentId: string) => { success: boolean; message: string; amountAdded?: number };
+  cancelOrRedeemInvestment: (investmentId: string) => { success: boolean; message: string };
+  staffAccount: StaffManagementAccount;
+  updateStaffAccount: (account: StaffManagementAccount) => void;
+  submitBankTransferDeposit: (params: {
+    amountUsd: number;
+    amountNgn: number;
+    senderName?: string;
+    senderBank?: string;
+    referenceOrSessionId?: string;
+    proofImageUrl?: string;
+    proofFileName?: string;
+  }) => { success: boolean; message: string; requestId: string };
 }
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -232,6 +270,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_DEPOSIT_REQUESTS, JSON.stringify(depositRequests));
+  }, [depositRequests]);
+
+  // Firestore Real-Time sync for deposit_requests
+  useEffect(() => {
+    try {
+      const q = query(collection(db, 'deposit_requests'), orderBy('timestamp', 'desc'), limit(100));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (!snapshot.empty) {
+          const list: DepositRequest[] = [];
+          snapshot.forEach((d) => list.push(d.data() as DepositRequest));
+          if (list.length > 0) {
+            setDepositRequests(prev => {
+              const map = new Map<string, DepositRequest>();
+              list.forEach(item => map.set(item.id, item));
+              prev.forEach(item => {
+                if (!map.has(item.id)) map.set(item.id, item);
+              });
+              return Array.from(map.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            });
+          }
+        }
+      }, () => {});
+      return () => unsubscribe();
+    } catch {}
+  }, []);
+
+  // Compute active user's pending deposit
+  const userPendingDeposit = useMemo(() => {
+    if (!currentUser) return null;
+    const req = depositRequests.find(r => 
+      (r.userId === currentUser.id || (r.userEmail && r.userEmail.toLowerCase() === currentUser.email.toLowerCase())) &&
+      r.status === 'pending_review'
+    );
+    if (req) return req;
+
+    const pendingTx = transactions.find(t => 
+      t.type === 'deposit' && t.status === 'pending' && !t.title.toLowerCase().includes('reject')
+    );
+    if (pendingTx) {
+      return {
+        id: pendingTx.id,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        userEmail: currentUser.email,
+        userPhone: currentUser.phoneNumber || '',
+        amount: pendingTx.amount,
+        network: pendingTx.method || 'Bank Transfer',
+        depositType: (pendingTx.title?.toLowerCase().includes('bank') ? 'bank_transfer' : 'crypto') as 'crypto' | 'bank_transfer',
+        txHash: pendingTx.reference,
+        status: 'pending_review' as const,
+        timestamp: pendingTx.timestamp
+      };
+    }
+    return null;
+  }, [currentUser, depositRequests, transactions]);
+
+  const hasPendingDeposit = Boolean(userPendingDeposit);
+
   const [adminWinRatePercent, setAdminWinRatePercent] = useState<number>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_ADMIN_WIN_RATE);
@@ -366,16 +464,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateCryptoAddress('usdt-trc20', address);
   };
 
+  // Staff Management Account state for Nigerian Bank Transfers
+  const [staffAccount, setStaffAccount] = useState<StaffManagementAccount>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_STAFF_ACCOUNT);
+      return saved ? JSON.parse(saved) : DEFAULT_STAFF_ACCOUNT;
+    } catch {
+      return DEFAULT_STAFF_ACCOUNT;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_STAFF_ACCOUNT, JSON.stringify(staffAccount));
+  }, [staffAccount]);
+
+  // Firestore sync for Staff Management Account
+  useEffect(() => {
+    try {
+      const configRef = doc(db, 'system_settings', 'staff_management_account');
+      const unsubscribe = onSnapshot(configRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data() as StaffManagementAccount;
+          if (data && data.bankName && data.accountNumber) {
+            setStaffAccount(prev => ({ ...prev, ...data }));
+            localStorage.setItem(STORAGE_KEY_STAFF_ACCOUNT, JSON.stringify({ ...DEFAULT_STAFF_ACCOUNT, ...data }));
+          }
+        } else {
+          setDoc(configRef, DEFAULT_STAFF_ACCOUNT, { merge: true }).catch(() => {});
+        }
+      }, (err) => {
+        console.warn('Firestore staff_account notice:', err.message);
+      });
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Firestore staff account listener error:', e);
+    }
+  }, []);
+
+  const updateStaffAccount = (newAccount: StaffManagementAccount) => {
+    const updated = { ...newAccount, updatedAt: new Date().toISOString() };
+    setStaffAccount(updated);
+    localStorage.setItem(STORAGE_KEY_STAFF_ACCOUNT, JSON.stringify(updated));
+
+    try {
+      const configRef = doc(db, 'system_settings', 'staff_management_account');
+      setDoc(configRef, updated, { merge: true }).catch((err) => {
+        console.warn('Firestore staff account update warning:', err);
+      });
+    } catch (e) {
+      console.warn('Firestore staff account update error:', e);
+    }
+  };
+
   const submitDepositRequest = (amount: number, network: string, txHash: string) => {
-    if (!currentUser || amount <= 0) return;
+    if (!currentUser || amount <= 0 || hasPendingDeposit) return;
 
     const newRequest: DepositRequest = {
       id: 'dep_req_' + Date.now(),
       userId: currentUser.id,
       userName: currentUser.name,
       userEmail: currentUser.email,
+      userPhone: currentUser.phoneNumber || '',
       amount,
       network: network || 'TRC20',
+      depositType: 'crypto',
       txHash: txHash || '0x' + Math.random().toString(16).substring(2, 10),
       status: 'pending_review',
       timestamp: new Date().toISOString()
@@ -406,6 +558,84 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setTransactions(prev => [pendingTx, ...prev]);
+  };
+
+  const submitBankTransferDeposit = (params: {
+    amountUsd: number;
+    amountNgn: number;
+    senderName?: string;
+    senderBank?: string;
+    referenceOrSessionId?: string;
+    proofImageUrl?: string;
+    proofFileName?: string;
+  }) => {
+    if (!currentUser || params.amountUsd <= 0) {
+      return { success: false, message: 'Invalid deposit amount or not logged in.', requestId: '' };
+    }
+
+    if (hasPendingDeposit) {
+      return {
+        success: false,
+        message: 'You already have a pending deposit awaiting admin approval. You cannot make another deposit until it is resolved.',
+        requestId: ''
+      };
+    }
+
+    const reqId = 'dep_bank_' + Date.now();
+    const cleanRef = params.referenceOrSessionId?.trim() || 'TRF-' + Math.floor(10000000 + Math.random() * 90000000);
+    const newRequest: DepositRequest = {
+      id: reqId,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      userEmail: currentUser.email,
+      userPhone: currentUser.phoneNumber || '',
+      amount: params.amountUsd,
+      ngnAmount: params.amountNgn,
+      depositType: 'bank_transfer',
+      network: `Bank Transfer (${staffAccount.bankName})`,
+      txHash: cleanRef,
+      proofImageUrl: params.proofImageUrl || '',
+      proofFileName: params.proofFileName || 'transfer_receipt.jpg',
+      senderName: params.senderName || currentUser.name,
+      senderBank: params.senderBank || 'Local Bank',
+      staffAccountDetails: {
+        bankName: staffAccount.bankName,
+        accountNumber: staffAccount.accountNumber,
+        accountName: staffAccount.accountName
+      },
+      status: 'pending_review',
+      timestamp: new Date().toISOString()
+    };
+
+    setDepositRequests(prev => [newRequest, ...prev]);
+
+    try {
+      const reqRef = doc(db, 'deposit_requests', newRequest.id);
+      setDoc(reqRef, newRequest).catch((err) => {
+        console.warn('Firestore submitBankTransferDeposit warning:', err);
+      });
+    } catch (e) {
+      console.warn('Firestore submitBankTransferDeposit error:', e);
+    }
+
+    const pendingTx: Transaction = {
+      id: 'tx_bank_' + Date.now(),
+      type: 'deposit',
+      amount: params.amountUsd,
+      status: 'pending',
+      timestamp: new Date().toISOString(),
+      title: `Bank Transfer (₦${params.amountNgn.toLocaleString()} NGN)`,
+      reference: cleanRef,
+      method: `Bank Transfer (${staffAccount.bankName})`
+    };
+
+    setTransactions(prev => [pendingTx, ...prev]);
+
+    return {
+      success: true,
+      message: 'Bank transfer payment proof submitted! Awaiting admin review and approval.',
+      requestId: reqId
+    };
   };
 
   const approveDepositRequest = (requestId: string) => {
@@ -464,7 +694,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Update user pending transactions to completed
     setTransactions(prev => prev.map(tx => {
       if (tx.type === 'deposit' && tx.status === 'pending' && Math.abs(tx.amount - targetReq.amount) < 0.01) {
-        return { ...tx, status: 'completed', title: `USDT (${targetReq.network}) Deposit Confirmed` };
+        const confirmedTitle = targetReq.depositType === 'bank_transfer'
+          ? `Bank Transfer (${targetReq.staffAccountDetails?.bankName || 'Staff Account'}) Confirmed`
+          : `USDT (${targetReq.network}) Deposit Confirmed`;
+        return { ...tx, status: 'completed', title: confirmedTitle };
       }
       return tx;
     }));
@@ -492,7 +725,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Update transaction to rejected/cancelled
     setTransactions(prev => prev.map(tx => {
       if (tx.type === 'deposit' && tx.status === 'pending' && Math.abs(tx.amount - targetReq.amount) < 0.01) {
-        return { ...tx, status: 'processing', title: `USDT (${targetReq.network}) Deposit Rejected` };
+        const rejectedTitle = targetReq.depositType === 'bank_transfer'
+          ? `Bank Transfer (${targetReq.staffAccountDetails?.bankName || 'Staff Account'}) Rejected`
+          : `USDT (${targetReq.network}) Deposit Rejected`;
+        return { ...tx, status: 'completed', title: rejectedTitle };
       }
       return tx;
     }));
@@ -654,7 +890,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isKycVerified: true,
       accountNumber: 'IQ-724910',
       country: 'Nigeria',
-      countryCode: 'NG'
+      countryCode: 'NG',
+      phoneNumber: '+234 803 123 4567'
     };
     setCurrentUser(demoUser);
   };
@@ -678,7 +915,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const depositFunds = (amount: number, method: string) => {
-    if (!currentUser || amount <= 0) return;
+    if (!currentUser || amount <= 0 || hasPendingDeposit) return;
     const newBal = Number((currentUser.balance + amount).toFixed(2));
     setCurrentUser({ ...currentUser, balance: newBal });
 
@@ -959,6 +1196,287 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
+  // User Crypto Investments & Yield Management
+  const [investments, setInvestments] = useState<UserInvestment[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_INVESTMENTS);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_INVESTMENTS, JSON.stringify(investments));
+  }, [investments]);
+
+  // Periodic yield accrual engine (runs every 6 seconds)
+  useEffect(() => {
+    if (!investments.some(inv => inv.status === 'active')) return;
+
+    const interval = setInterval(() => {
+      setInvestments(prev => {
+        let changed = false;
+        const now = Date.now();
+        const updated = prev.map(inv => {
+          if (inv.status !== 'active') return inv;
+
+          // Check if maturity reached
+          const endMs = new Date(inv.endDate).getTime();
+          if (now >= endMs) {
+            changed = true;
+            const totalPayout = Number((inv.investedAmount + inv.accruedEarnings).toFixed(2));
+            if (currentUser && totalPayout > 0) {
+              const newBal = Number((currentUser.balance + totalPayout).toFixed(2));
+              setCurrentUser(curr => curr ? { ...curr, balance: newBal } : null);
+
+              const maturityTx: Transaction = {
+                id: 'tx_mat_' + Date.now(),
+                type: 'investment_yield',
+                amount: totalPayout,
+                status: 'completed',
+                timestamp: new Date().toISOString(),
+                title: `Investment Matured: ${inv.planName} (Principal + Yield Return)`,
+                reference: 'MAT-' + Math.floor(100000 + Math.random() * 900000),
+                method: 'Crypto Vault Maturity'
+              };
+              setTransactions(t => [maturityTx, ...t]);
+            }
+            return {
+              ...inv,
+              status: 'completed' as const,
+              accruedEarnings: 0,
+              claimedEarnings: Number((inv.claimedEarnings + inv.accruedEarnings).toFixed(2))
+            };
+          }
+
+          // Otherwise accrue proportional interest since last accrual
+          const elapsedSeconds = Math.max(1, (now - inv.lastAccrualTimestamp) / 1000);
+          const profitPerSecond = inv.dailyProfitAmount / 86400;
+          const incrementalProfit = Number((profitPerSecond * elapsedSeconds).toFixed(6));
+
+          if (incrementalProfit > 0) {
+            changed = true;
+            return {
+              ...inv,
+              accruedEarnings: Number((inv.accruedEarnings + incrementalProfit).toFixed(4)),
+              lastAccrualTimestamp: now
+            };
+          }
+          return inv;
+        });
+
+        return changed ? updated : prev;
+      });
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [investments, currentUser]);
+
+  const createInvestment = (planId: string, amount: number) => {
+    if (!currentUser) {
+      return { success: false, message: 'Please log in to start an investment.' };
+    }
+    const plan = INVESTMENT_PLANS.find(p => p.id === planId);
+    if (!plan) {
+      return { success: false, message: 'Invalid investment plan selected.' };
+    }
+    if (amount <= 0) {
+      return { success: false, message: 'Investment amount must be greater than zero.' };
+    }
+    if (amount < plan.minInvestment) {
+      return { success: false, message: `Minimum investment for this plan is $${plan.minInvestment}.` };
+    }
+    if (amount > plan.maxInvestment) {
+      return { success: false, message: `Maximum investment for this plan is $${plan.maxInvestment.toLocaleString()}.` };
+    }
+    if (currentUser.balance < amount) {
+      return {
+        success: false,
+        message: `Insufficient dashboard balance ($${currentUser.balance.toFixed(2)}). Please deposit funds to invest.`
+      };
+    }
+
+    // Deduct from dashboard balance
+    const updatedBalance = Number((currentUser.balance - amount).toFixed(2));
+    setCurrentUser({ ...currentUser, balance: updatedBalance });
+
+    // Daily profit calculation based on APY
+    const dailyProfit = Number(((amount * (plan.apyPercent / 100)) / 365).toFixed(4));
+    const now = Date.now();
+    const newInv: UserInvestment = {
+      id: 'inv_' + now + '_' + Math.floor(Math.random() * 1000),
+      planId: plan.id,
+      planName: plan.name,
+      cryptoSymbol: plan.cryptoSymbol,
+      investedAmount: amount,
+      startDate: new Date(now).toISOString(),
+      endDate: new Date(now + plan.durationDays * 24 * 60 * 60 * 1000).toISOString(),
+      durationDays: plan.durationDays,
+      apyPercent: plan.apyPercent,
+      dailyProfitAmount: dailyProfit,
+      accruedEarnings: 0,
+      claimedEarnings: 0,
+      status: 'active',
+      lastAccrualTimestamp: now
+    };
+
+    setInvestments(prev => [newInv, ...prev]);
+
+    // Record Transaction
+    const newTx: Transaction = {
+      id: 'tx_inv_' + now,
+      type: 'investment',
+      amount,
+      status: 'completed',
+      timestamp: new Date().toISOString(),
+      title: `Crypto Staking: ${plan.cryptoName} (${plan.cryptoSymbol})`,
+      reference: 'INV-' + Math.floor(100000 + Math.random() * 900000),
+      method: 'Dashboard Balance'
+    };
+    setTransactions(prev => [newTx, ...prev]);
+
+    return {
+      success: true,
+      message: `Successfully invested $${amount.toFixed(2)} into ${plan.name} at ${plan.apyPercent}% APY!`
+    };
+  };
+
+  const claimInvestmentEarnings = (investmentId?: string) => {
+    if (!currentUser) return { success: false, message: 'Please log in to claim earnings.' };
+
+    const targetInvs = investmentId 
+      ? investments.filter(i => i.id === investmentId && i.status === 'active')
+      : investments.filter(i => i.status === 'active');
+
+    const totalClaim = Number(targetInvs.reduce((acc, i) => acc + i.accruedEarnings, 0).toFixed(2));
+    if (totalClaim <= 0) {
+      return { success: false, message: 'No uncollected earnings available to claim yet.' };
+    }
+
+    // Deliver earnings to dashboard balance
+    const newBal = Number((currentUser.balance + totalClaim).toFixed(2));
+    setCurrentUser({ ...currentUser, balance: newBal });
+
+    // Update investments
+    setInvestments(prev => prev.map(inv => {
+      const match = targetInvs.some(t => t.id === inv.id);
+      if (match) {
+        return {
+          ...inv,
+          accruedEarnings: 0,
+          claimedEarnings: Number((inv.claimedEarnings + inv.accruedEarnings).toFixed(2))
+        };
+      }
+      return inv;
+    }));
+
+    // Record Transaction
+    const newTx: Transaction = {
+      id: 'tx_claim_' + Date.now(),
+      type: 'investment_yield',
+      amount: totalClaim,
+      status: 'completed',
+      timestamp: new Date().toISOString(),
+      title: `Yield Earnings Delivered to Balance (+${totalClaim.toFixed(2)})`,
+      reference: 'CLM-' + Math.floor(100000 + Math.random() * 900000),
+      method: 'Crypto Vault Staking Yield'
+    };
+    setTransactions(prev => [newTx, ...prev]);
+
+    return {
+      success: true,
+      message: `Successfully credited +$${totalClaim.toFixed(2)} earnings directly to your dashboard balance!`,
+      amountClaimed: totalClaim
+    };
+  };
+
+  const settleDailyYield = (investmentId: string) => {
+    if (!currentUser) return { success: false, message: 'Please log in.' };
+    const inv = investments.find(i => i.id === investmentId);
+    if (!inv || inv.status !== 'active') {
+      return { success: false, message: 'Active investment not found.' };
+    }
+
+    // Settle 1 daily cycle earnings straight to dashboard balance
+    const dailyEarn = Number(inv.dailyProfitAmount.toFixed(2)) > 0 ? Number(inv.dailyProfitAmount.toFixed(2)) : Number((inv.dailyProfitAmount * 1).toFixed(3));
+    const finalAmount = Math.max(0.05, dailyEarn);
+
+    const newBal = Number((currentUser.balance + finalAmount).toFixed(2));
+    setCurrentUser({ ...currentUser, balance: newBal });
+
+    setInvestments(prev => prev.map(i => {
+      if (i.id === investmentId) {
+        return {
+          ...i,
+          claimedEarnings: Number((i.claimedEarnings + finalAmount).toFixed(2)),
+          lastAccrualTimestamp: Date.now()
+        };
+      }
+      return i;
+    }));
+
+    const newTx: Transaction = {
+      id: 'tx_settle_' + Date.now(),
+      type: 'investment_yield',
+      amount: finalAmount,
+      status: 'completed',
+      timestamp: new Date().toISOString(),
+      title: `Daily Staking Payout - ${inv.cryptoSymbol} (+${finalAmount.toFixed(2)})`,
+      reference: 'YLD-' + Math.floor(100000 + Math.random() * 900000),
+      method: 'Daily Yield Cycle'
+    };
+    setTransactions(prev => [newTx, ...prev]);
+
+    return {
+      success: true,
+      message: `Delivered +$${finalAmount.toFixed(2)} daily yield to your dashboard balance!`,
+      amountAdded: finalAmount
+    };
+  };
+
+  const cancelOrRedeemInvestment = (investmentId: string) => {
+    if (!currentUser) return { success: false, message: 'Please log in.' };
+    const inv = investments.find(i => i.id === investmentId);
+    if (!inv || inv.status !== 'active') {
+      return { success: false, message: 'Active investment not found.' };
+    }
+
+    // Return principal + any unclaimed earnings
+    const totalRefund = Number((inv.investedAmount + inv.accruedEarnings).toFixed(2));
+    const newBal = Number((currentUser.balance + totalRefund).toFixed(2));
+    setCurrentUser({ ...currentUser, balance: newBal });
+
+    setInvestments(prev => prev.map(i => {
+      if (i.id === investmentId) {
+        return {
+          ...i,
+          status: 'completed' as const,
+          accruedEarnings: 0,
+          claimedEarnings: Number((i.claimedEarnings + i.accruedEarnings).toFixed(2))
+        };
+      }
+      return i;
+    }));
+
+    const newTx: Transaction = {
+      id: 'tx_red_' + Date.now(),
+      type: 'investment_yield',
+      amount: totalRefund,
+      status: 'completed',
+      timestamp: new Date().toISOString(),
+      title: `Staking Principal Released: ${inv.planName} (+${totalRefund.toFixed(2)})`,
+      reference: 'RED-' + Math.floor(100000 + Math.random() * 900000),
+      method: 'Early Redemption / Release'
+    };
+    setTransactions(prev => [newTx, ...prev]);
+
+    return {
+      success: true,
+      message: `Redeemed investment. $${totalRefund.toFixed(2)} returned to your dashboard balance.`
+    };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -988,6 +1506,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateCryptoAddress,
         updateAllCryptoAddresses,
         depositRequests,
+        hasPendingDeposit,
+        userPendingDeposit,
         submitDepositRequest,
         approveDepositRequest,
         rejectDepositRequest,
@@ -995,7 +1515,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         expiredTradeResult,
         clearExpiredTradeResult,
         adminWinRatePercent,
-        updateAdminWinRatePercent
+        updateAdminWinRatePercent,
+        investments,
+        createInvestment,
+        claimInvestmentEarnings,
+        settleDailyYield,
+        cancelOrRedeemInvestment,
+        staffAccount,
+        updateStaffAccount,
+        submitBankTransferDeposit
       }}
     >
       {children}

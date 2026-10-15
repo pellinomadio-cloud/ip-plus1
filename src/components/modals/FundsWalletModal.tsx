@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Wallet, CreditCard, ArrowRight, ShieldCheck, CheckCircle2, DollarSign } from 'lucide-react';
+import { X, Wallet, CreditCard, ArrowRight, ShieldCheck, CheckCircle2, DollarSign, Lock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../data/marketData';
 
@@ -9,7 +9,7 @@ interface FundsWalletModalProps {
 }
 
 export const FundsWalletModal: React.FC<FundsWalletModalProps> = ({ isOpen, onClose }) => {
-  const { currentUser, depositFunds } = useAuth();
+  const { currentUser, depositFunds, hasPendingDeposit } = useAuth();
   const [selectedMethod, setSelectedMethod] = useState<'card' | 'crypto' | 'wire'>('card');
   const [customAmount, setCustomAmount] = useState<string>('250');
   const [isSuccess, setIsSuccess] = useState(false);
@@ -20,6 +20,7 @@ export const FundsWalletModal: React.FC<FundsWalletModalProps> = ({ isOpen, onCl
 
   const handleDeposit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasPendingDeposit) return;
     const num = parseFloat(customAmount);
     if (isNaN(num) || num <= 0) return;
 
@@ -161,19 +162,36 @@ export const FundsWalletModal: React.FC<FundsWalletModalProps> = ({ isOpen, onCl
               </div>
             </div>
 
-            {/* Security note */}
-            <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center gap-2 text-[11px] text-slate-400">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Instant deposit, zero transaction fee, credited immediately.</span>
-            </div>
+            {/* Pending deposit lock notice */}
+            {hasPendingDeposit ? (
+              <div className="p-3 bg-amber-400/10 border border-amber-400/30 rounded-xl space-y-1 text-center">
+                <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-amber-300">
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Cannot Make Another Deposit</span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  You already have a pending deposit awaiting admin approval. Please wait for it to be confirmed.
+                </p>
+              </div>
+            ) : (
+              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center gap-2 text-[11px] text-slate-400">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Instant deposit, zero transaction fee, credited immediately.</span>
+              </div>
+            )}
 
             {/* Action */}
             <button
               type="submit"
-              className="w-full py-3 bg-[#F5BA31] hover:bg-[#ffc842] active:scale-[0.99] text-slate-950 font-extrabold rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer"
+              disabled={hasPendingDeposit}
+              className={`w-full py-3 font-extrabold rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${
+                hasPendingDeposit
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                  : 'bg-[#F5BA31] hover:bg-[#ffc842] active:scale-[0.99] text-slate-950 shadow-lg shadow-amber-500/20 cursor-pointer'
+              }`}
             >
-              <span>Confirm Deposit of ${customAmount || '0'}</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>{hasPendingDeposit ? 'Deposit Locked (Pending Review)' : `Confirm Deposit of $${customAmount || '0'}`}</span>
+              {!hasPendingDeposit && <ArrowRight className="w-4 h-4" />}
             </button>
           </form>
         )}
