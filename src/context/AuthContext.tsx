@@ -38,11 +38,12 @@ export const isNigeriaPhoneUser = (user: User | null | undefined): boolean => {
 };
 
 export const DEFAULT_STAFF_ACCOUNT: StaffManagementAccount = {
-  bankName: 'Moniepoint Microfinance Bank',
-  accountNumber: '8102345678',
-  accountName: 'STAFF MANAGEMENT TREASURY / IQ PLUS',
+  bankName: '',
+  accountNumber: '',
+  accountName: '',
   exchangeRateNgn: 1550,
-  paymentInstructions: 'Please make transfer of the exact NGN amount to this official staff management account and upload your payment receipt below.'
+  paymentInstructions: '',
+  isConfigured: false
 };
 
 export const DEFAULT_CRYPTO_ADDRESSES: Record<string, string> = {
@@ -468,7 +469,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [staffAccount, setStaffAccount] = useState<StaffManagementAccount>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_STAFF_ACCOUNT);
-      return saved ? JSON.parse(saved) : DEFAULT_STAFF_ACCOUNT;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          parsed &&
+          parsed.isConfigured &&
+          parsed.bankName?.trim() &&
+          parsed.accountNumber?.trim() &&
+          parsed.accountNumber !== '8102345678' &&
+          parsed.accountName !== 'STAFF MANAGEMENT TREASURY / IQ PLUS'
+        ) {
+          return { ...parsed, isConfigured: true };
+        }
+      }
+      return DEFAULT_STAFF_ACCOUNT;
     } catch {
       return DEFAULT_STAFF_ACCOUNT;
     }
@@ -485,13 +499,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const unsubscribe = onSnapshot(configRef, (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.data() as StaffManagementAccount;
-          if (data && data.bankName && data.accountNumber) {
-            setStaffAccount(prev => ({ ...prev, ...data }));
-            localStorage.setItem(STORAGE_KEY_STAFF_ACCOUNT, JSON.stringify({ ...DEFAULT_STAFF_ACCOUNT, ...data }));
+          if (
+            data &&
+            data.isConfigured &&
+            data.bankName?.trim() &&
+            data.accountNumber?.trim() &&
+            data.accountNumber !== '8102345678'
+          ) {
+            setStaffAccount(data);
+            localStorage.setItem(STORAGE_KEY_STAFF_ACCOUNT, JSON.stringify(data));
+          } else if (data && data.isConfigured === false) {
+            setStaffAccount(DEFAULT_STAFF_ACCOUNT);
+            localStorage.setItem(STORAGE_KEY_STAFF_ACCOUNT, JSON.stringify(DEFAULT_STAFF_ACCOUNT));
           }
-        } else {
-          setDoc(configRef, DEFAULT_STAFF_ACCOUNT, { merge: true }).catch(() => {});
         }
+        // Do NOT call setDoc with default fake account if document does not exist!
       }, (err) => {
         console.warn('Firestore staff_account notice:', err.message);
       });
@@ -502,13 +524,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const updateStaffAccount = (newAccount: StaffManagementAccount) => {
-    const updated = { ...newAccount, updatedAt: new Date().toISOString() };
+    const isConfigured = Boolean(
+      newAccount.isConfigured !== false &&
+      newAccount.bankName?.trim() &&
+      newAccount.accountNumber?.trim() &&
+      newAccount.accountName?.trim()
+    );
+
+    const updated: StaffManagementAccount = {
+      bankName: newAccount.bankName?.trim() || '',
+      accountNumber: newAccount.accountNumber?.trim() || '',
+      accountName: newAccount.accountName?.trim() || '',
+      exchangeRateNgn: Number(newAccount.exchangeRateNgn) || 1550,
+      paymentInstructions: newAccount.paymentInstructions?.trim() || '',
+      isConfigured,
+      updatedAt: new Date().toISOString()
+    };
+
     setStaffAccount(updated);
     localStorage.setItem(STORAGE_KEY_STAFF_ACCOUNT, JSON.stringify(updated));
 
     try {
       const configRef = doc(db, 'system_settings', 'staff_management_account');
-      setDoc(configRef, updated, { merge: true }).catch((err) => {
+      setDoc(configRef, updated).catch((err) => {
         console.warn('Firestore staff account update warning:', err);
       });
     } catch (e) {
@@ -571,6 +609,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }) => {
     if (!currentUser || params.amountUsd <= 0) {
       return { success: false, message: 'Invalid deposit amount or not logged in.', requestId: '' };
+    }
+
+    if (!staffAccount || !staffAccount.isConfigured || !staffAccount.bankName?.trim() || !staffAccount.accountNumber?.trim()) {
+      return {
+        success: false,
+        message: 'Naira bank transfer is currently unavailable. Payment account has not been configured by the admin yet.',
+        requestId: ''
+      };
     }
 
     if (hasPendingDeposit) {

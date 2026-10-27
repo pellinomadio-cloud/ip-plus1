@@ -58,32 +58,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Staff Management Account Form State
-  const [staffBankName, setStaffBankName] = useState<string>(staffAccount?.bankName || 'Moniepoint Microfinance Bank');
-  const [staffAccountNumber, setStaffAccountNumber] = useState<string>(staffAccount?.accountNumber || '8102345678');
-  const [staffAccountName, setStaffAccountName] = useState<string>(staffAccount?.accountName || 'STAFF MANAGEMENT TREASURY / IQ PLUS');
+  const [staffBankName, setStaffBankName] = useState<string>(staffAccount?.isConfigured ? staffAccount.bankName : '');
+  const [staffAccountNumber, setStaffAccountNumber] = useState<string>(staffAccount?.isConfigured ? staffAccount.accountNumber : '');
+  const [staffAccountName, setStaffAccountName] = useState<string>(staffAccount?.isConfigured ? staffAccount.accountName : '');
   const [staffExchangeRate, setStaffExchangeRate] = useState<number>(staffAccount?.exchangeRateNgn || 1550);
-  const [staffInstructions, setStaffInstructions] = useState<string>(staffAccount?.paymentInstructions || 'Please make transfer of the exact NGN amount to this official staff management account and upload your payment receipt below.');
+  const [staffInstructions, setStaffInstructions] = useState<string>(staffAccount?.paymentInstructions || '');
   const [staffSavedNotice, setStaffSavedNotice] = useState<boolean>(false);
   const [selectedReceiptReq, setSelectedReceiptReq] = useState<DepositRequest | null>(null);
 
   useEffect(() => {
-    if (staffAccount) {
-      setStaffBankName(staffAccount.bankName || 'Moniepoint Microfinance Bank');
-      setStaffAccountNumber(staffAccount.accountNumber || '8102345678');
-      setStaffAccountName(staffAccount.accountName || 'STAFF MANAGEMENT TREASURY / IQ PLUS');
+    if (staffAccount && staffAccount.isConfigured) {
+      setStaffBankName(staffAccount.bankName || '');
+      setStaffAccountNumber(staffAccount.accountNumber || '');
+      setStaffAccountName(staffAccount.accountName || '');
       setStaffExchangeRate(staffAccount.exchangeRateNgn || 1550);
-      setStaffInstructions(staffAccount.paymentInstructions || 'Please make transfer of the exact NGN amount to this official staff management account and upload your payment receipt below.');
+      setStaffInstructions(staffAccount.paymentInstructions || '');
     }
   }, [staffAccount]);
 
   const handleSaveStaffAccount = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!staffBankName.trim() || !staffAccountNumber.trim() || !staffAccountName.trim()) {
+      return;
+    }
     updateStaffAccount({
-      bankName: staffBankName.trim() || 'Moniepoint Microfinance Bank',
-      accountNumber: staffAccountNumber.trim() || '8102345678',
-      accountName: staffAccountName.trim() || 'STAFF MANAGEMENT TREASURY / IQ PLUS',
+      bankName: staffBankName.trim(),
+      accountNumber: staffAccountNumber.trim(),
+      accountName: staffAccountName.trim(),
       exchangeRateNgn: Number(staffExchangeRate) || 1550,
-      paymentInstructions: staffInstructions.trim()
+      paymentInstructions: staffInstructions.trim(),
+      isConfigured: true
+    });
+    setStaffSavedNotice(true);
+    setTimeout(() => setStaffSavedNotice(false), 3500);
+  };
+
+  const handleClearStaffAccount = () => {
+    setStaffBankName('');
+    setStaffAccountNumber('');
+    setStaffAccountName('');
+    setStaffInstructions('');
+    updateStaffAccount({
+      bankName: '',
+      accountNumber: '',
+      accountName: '',
+      exchangeRateNgn: Number(staffExchangeRate) || 1550,
+      paymentInstructions: '',
+      isConfigured: false
     });
     setStaffSavedNotice(true);
     setTimeout(() => setStaffSavedNotice(false), 3500);
@@ -450,34 +471,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         <div className="p-4 bg-[#121824] border border-emerald-500/30 rounded-2xl space-y-4 shadow-lg shadow-black/30">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-emerald-400" />
                   Company Staff Management Account (Nigeria Deposits)
                 </h3>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
-                  🇳🇬 NGN SETTLEMENT
-                </span>
+                {staffAccount?.isConfigured && staffAccount.bankName ? (
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    🟢 ACTIVE ({staffAccount.bankName})
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 font-mono font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+                    🟡 NOT SET (HIDDEN FROM USERS)
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Configure the company staff bank account displayed to Nigerian users when funding their wallet via local bank transfer.
+                {staffAccount?.isConfigured && staffAccount.bankName 
+                  ? `Currently active: ${staffAccount.bankName} - ${staffAccount.accountNumber} (${staffAccount.accountName}).`
+                  : 'No account details are set. Nothing will be shown on the Naira deposit method until you configure and save below.'}
               </p>
             </div>
 
-            <button
-              type="submit"
-              form="staff-account-form"
-              className="py-1.5 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto shrink-0 shadow-md shadow-emerald-500/20"
-            >
-              <Save className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Save Staff Account</span>
-            </button>
+            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+              {staffAccount?.isConfigured && (
+                <button
+                  type="button"
+                  onClick={handleClearStaffAccount}
+                  className="py-1.5 px-3 bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                  title="Remove payment details so nothing is shown to users"
+                >
+                  Clear Account
+                </button>
+              )}
+              <button
+                type="submit"
+                form="staff-account-form"
+                className="py-1.5 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-emerald-500/20"
+              >
+                <Save className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Save Staff Account</span>
+              </button>
+            </div>
           </div>
 
           {staffSavedNotice && (
             <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>Company Staff Management Account updated! Nigerian users selecting Bank Transfer will now see these updated payment details.</span>
+              <span>{staffAccount?.isConfigured ? 'Company Staff Management Account updated! Nigerian users will now see these exact payment details.' : 'Naira bank account details cleared. Nothing will be shown to users until new details are set.'}</span>
             </div>
           )}
 
@@ -507,7 +548,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               {/* Bank Name */}
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Bank Name
+                  Bank Name <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -515,14 +556,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   value={staffBankName}
                   onChange={(e) => setStaffBankName(e.target.value)}
                   className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-400"
-                  placeholder="e.g. Moniepoint Microfinance Bank"
+                  placeholder="e.g. OPay, Moniepoint, PalmPay, GTBank"
                 />
               </div>
 
               {/* Account Number */}
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Account Number (NUBAN)
+                  Account Number (NUBAN) <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -530,14 +571,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   value={staffAccountNumber}
                   onChange={(e) => setStaffAccountNumber(e.target.value)}
                   className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs font-mono font-bold text-amber-400 placeholder-slate-600 focus:outline-none focus:border-emerald-400"
-                  placeholder="e.g. 8102345678"
+                  placeholder="e.g. 7012345678"
                 />
               </div>
 
               {/* Account Name */}
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Account Beneficiary Name
+                  Account Beneficiary Name <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -545,7 +586,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   value={staffAccountName}
                   onChange={(e) => setStaffAccountName(e.target.value)}
                   className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-400"
-                  placeholder="e.g. STAFF MANAGEMENT TREASURY / IQ PLUS"
+                  placeholder="e.g. COMPANY TREASURY / STAFF NAME"
                 />
               </div>
 

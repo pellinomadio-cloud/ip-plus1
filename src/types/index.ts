@@ -117,6 +117,7 @@ export interface StaffManagementAccount {
   exchangeRateNgn: number;
   paymentInstructions?: string;
   updatedAt?: string;
+  isConfigured?: boolean;
 }
 
 export interface DepositRequest {

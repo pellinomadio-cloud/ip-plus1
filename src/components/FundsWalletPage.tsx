@@ -200,8 +200,18 @@ export const FundsWalletPage: React.FC<FundsWalletPageProps> = ({ onBack, onGoTo
   const calculatedNgn = Math.round(parsedUsd * exchangeRate);
   const userNarrationRef = `IQ-${currentUser?.accountNumber ? currentUser.accountNumber.replace('IQ-', '') : 'DEP' + Math.floor(1000 + Math.random() * 9000)}`;
 
+  // Strict check: Naira settlement account must be genuinely configured by admin
+  const isNairaConfigured = Boolean(
+    staffAccount &&
+    staffAccount.isConfigured &&
+    staffAccount.bankName?.trim() &&
+    staffAccount.accountNumber?.trim() &&
+    staffAccount.accountNumber !== '8102345678'
+  );
+
   // Transition from method selection to bank transfer with an animated loading page
   const handleSelectBankTransfer = () => {
+    if (!isNairaConfigured) return;
     setActiveChannel('loading_bank');
     setTimeout(() => {
       setActiveChannel('bank_transfer');
@@ -250,6 +260,11 @@ export const FundsWalletPage: React.FC<FundsWalletPageProps> = ({ onBack, onGoTo
   const handleSubmitBankTransfer = (e: React.FormEvent) => {
     e.preventDefault();
     if (parsedUsd <= 0) return;
+
+    if (!isNairaConfigured) {
+      setBankUploadError('Naira bank deposit is currently not configured by the administrator.');
+      return;
+    }
 
     if (hasPendingDeposit) {
       setBankUploadError('You already have a pending deposit awaiting admin approval. You cannot make another deposit until it is resolved.');
@@ -647,43 +662,73 @@ export const FundsWalletPage: React.FC<FundsWalletPageProps> = ({ onBack, onGoTo
             </span>
 
             {/* CHANNEL 1: BANK TRANSFER */}
-            <button
-              type="button"
-              onClick={handleSelectBankTransfer}
-              className="w-full text-left p-4 rounded-2xl bg-[#121824] border-2 border-emerald-500/40 hover:border-emerald-400 active:scale-[0.99] transition-all cursor-pointer shadow-lg group relative overflow-hidden"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-105 transition-transform">
-                    <Building2 className="w-6 h-6" />
+            {isNairaConfigured ? (
+              <button
+                type="button"
+                onClick={handleSelectBankTransfer}
+                className="w-full text-left p-4 rounded-2xl bg-[#121824] border-2 border-emerald-500/40 hover:border-emerald-400 active:scale-[0.99] transition-all cursor-pointer shadow-lg group relative overflow-hidden"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-105 transition-transform">
+                      <Building2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">
+                          Bank Transfer
+                        </h3>
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                          INSTANT NGN
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1 leading-snug">
+                        Pay into company staff management account from OPay, PalmPay, Kuda, Moniepoint, or any Nigerian bank.
+                      </p>
+                      <div className="flex items-center gap-3 mt-2.5 text-[11px] font-mono text-slate-400">
+                        <span>Rate: <strong className="text-amber-400">₦{exchangeRate.toLocaleString()}/$</strong></span>
+                        <span>•</span>
+                        <span>Zero Fee</span>
+                        <span>•</span>
+                        <span className="text-emerald-400 font-semibold">Fast Approval</span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">
-                        Bank Transfer
-                      </h3>
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
-                        INSTANT NGN
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-300 mt-1 leading-snug">
-                      Pay into company staff management account from OPay, PalmPay, Kuda, Moniepoint, or any Nigerian bank.
-                    </p>
-                    <div className="flex items-center gap-3 mt-2.5 text-[11px] font-mono text-slate-400">
-                      <span>Rate: <strong className="text-amber-400">₦{exchangeRate.toLocaleString()}/$</strong></span>
-                      <span>•</span>
-                      <span>Zero Fee</span>
-                      <span>•</span>
-                      <span className="text-emerald-400 font-semibold">Fast Approval</span>
-                    </div>
+
+                  <div className="w-8 h-8 rounded-xl bg-slate-800/80 group-hover:bg-emerald-500 group-hover:text-slate-950 flex items-center justify-center text-slate-400 transition-all shrink-0 mt-2">
+                    <ArrowRight className="w-4 h-4" />
                   </div>
                 </div>
-
-                <div className="w-8 h-8 rounded-xl bg-slate-800/80 group-hover:bg-emerald-500 group-hover:text-slate-950 flex items-center justify-center text-slate-400 transition-all shrink-0 mt-2">
-                  <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <div
+                className="w-full text-left p-4 rounded-2xl bg-[#0F141D] border border-slate-800/80 relative overflow-hidden opacity-85"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-500 shrink-0">
+                      <Building2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-300">
+                          Bank Transfer (NGN)
+                        </h3>
+                        <span className="text-[10px] bg-amber-500/15 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+                          PENDING ADMIN SETUP
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1 leading-snug">
+                        Settlement account details have not been set by administrator yet. Please use Crypto Deposit below.
+                      </p>
+                      <div className="flex items-center gap-2 mt-2 text-[11px] font-mono text-amber-400/80">
+                        <span>• Payment details will appear once admin sets account</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </button>
+            )}
 
             {/* CHANNEL 2: CRYPTO */}
             <button
@@ -741,6 +786,82 @@ export const FundsWalletPage: React.FC<FundsWalletPageProps> = ({ onBack, onGoTo
   // RENDER VIEW 4: BANK TRANSFER SETTLEMENT PAGE (Company Staff Account)
   // -------------------------------------------------------------
   if (activeChannel === 'bank_transfer') {
+    if (!isNairaConfigured) {
+      return (
+        <div className="min-h-screen bg-[#070A0F] text-white pb-24 select-none">
+          <div className="flex items-center justify-between px-4 py-3 bg-[#090D14] border-b border-slate-800/80 sticky top-0 z-30">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setActiveChannel('select_channel')}
+                className="p-1.5 rounded-xl bg-[#141B27] border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-colors cursor-pointer"
+                aria-label="Back to Channels"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-base font-bold text-white leading-tight">Bank Transfer</h1>
+                <p className="text-[11px] text-amber-400">Account Not Configured</p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <span className="text-[10px] text-slate-400 block">Balance</span>
+              <span className="font-mono font-bold text-sm text-amber-400">
+                {formatCurrency(balance)}
+              </span>
+            </div>
+          </div>
+
+          <div className="max-w-md mx-auto p-4 space-y-4">
+            <div className="p-6 bg-[#121824] border border-amber-400/30 rounded-2xl text-center space-y-4 shadow-xl">
+              <div className="w-16 h-16 rounded-2xl bg-amber-400/10 border border-amber-400/30 text-amber-400 flex items-center justify-center mx-auto">
+                <Building2 className="w-8 h-8" />
+              </div>
+
+              <div>
+                <span className="text-[10px] font-mono font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2.5 py-0.5 rounded-full inline-block mb-2">
+                  PENDING ADMIN SETUP
+                </span>
+                <h3 className="text-base font-bold text-white">Naira Payment Account Not Set</h3>
+                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                  The company staff management account details have not yet been configured by the platform administrator. Direct bank transfer is temporarily unavailable until the administrator updates the account in the Admin Dashboard.
+                </p>
+              </div>
+
+              <div className="p-3 bg-[#0B0F17] rounded-xl border border-slate-800 text-xs text-slate-400 text-left space-y-1.5">
+                <div className="flex items-center gap-2 text-slate-300 font-semibold">
+                  <Info className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>How to deposit right now:</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed pl-6">
+                  You can deposit immediately using our multi-chain <strong>Crypto Deposit</strong> (USDT, BTC, ETH, SOL, BNB, TRX), or wait until management sets the local settlement account.
+                </p>
+              </div>
+
+              <div className="pt-2 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveChannel('crypto')}
+                  className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-400/20"
+                >
+                  <Coins className="w-4 h-4" />
+                  <span>Deposit via Crypto Instead</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveChannel('select_channel')}
+                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                  Back to Deposit Channels
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[#070A0F] text-white pb-24 select-none">
         {/* Top Header */}
@@ -1109,8 +1230,8 @@ export const FundsWalletPage: React.FC<FundsWalletPageProps> = ({ onBack, onGoTo
       </div>
 
       <div className="max-w-md mx-auto p-4 space-y-4">
-        {/* If Nigerian user, show button to switch to Bank Transfer */}
-        {isNigeriaUser && (
+        {/* If Nigerian user and Naira account is configured by admin, show button to switch to Bank Transfer */}
+        {isNigeriaUser && isNairaConfigured && (
           <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-base">🇳🇬</span>
