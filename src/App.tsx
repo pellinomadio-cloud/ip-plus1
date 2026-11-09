@@ -15,20 +15,20 @@ import { SettingsView } from './components/SettingsView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { BottomNav } from './components/BottomNav';
 import { FundsWalletPage } from './components/FundsWalletPage';
-import { WithdrawModal } from './components/modals/WithdrawModal';
+import { WithdrawPage } from './components/WithdrawPage';
+import { CommunityPage } from './components/CommunityPage';
 import { TradeModal } from './components/modals/TradeModal';
 import { TradeResultModal } from './components/modals/TradeResultModal';
 import { TradingTerminalPage } from './components/TradingTerminalPage';
 import { NavigationDrawer } from './components/NavigationDrawer';
 import { NavTab, MarketAsset } from './types';
-import { Smartphone, Monitor, ShieldCheck, Sparkles } from 'lucide-react';
+import { Smartphone, Monitor, ShieldCheck } from 'lucide-react';
 import { BrandLogo } from './components/BrandLogo';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { PriceAlertProvider, usePriceAlerts } from './context/PriceAlertContext';
 import { PriceAlertModal } from './components/modals/PriceAlertModal';
 import { PriceAlertBanner } from './components/PriceAlertBanner';
-import { InvestModal } from './components/modals/InvestModal';
 
 
 function AppContent() {
@@ -37,9 +37,7 @@ function AppContent() {
   const { isAlertModalOpen, setIsAlertModalOpen } = usePriceAlerts();
 
   const [activeTab, setActiveTab] = useState<NavTab>('home');
-  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
-  const [isInvestModalOpen, setIsInvestModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [desktopMode, setDesktopMode] = useState<'mobile' | 'wide'>('mobile');
 
@@ -61,11 +59,9 @@ function AppContent() {
       e.preventDefault();
 
       // 1. Close open modals or drawers if active
-      if (isWithdrawModalOpen || isTradeModalOpen || isDrawerOpen || isInvestModalOpen) {
-        setIsWithdrawModalOpen(false);
+      if (isTradeModalOpen || isDrawerOpen) {
         setIsTradeModalOpen(false);
         setIsDrawerOpen(false);
-        setIsInvestModalOpen(false);
         window.history.pushState({ appState: 'iq_trading_app', tab: activeTab }, '');
         return;
       }
@@ -85,7 +81,7 @@ function AppContent() {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [isAuthenticated, activeTab, isWithdrawModalOpen, isTradeModalOpen, isDrawerOpen]);
+  }, [isAuthenticated, activeTab, isTradeModalOpen, isDrawerOpen]);
 
   // If not authenticated, show registration/login page
   if (!isAuthenticated) {
@@ -103,37 +99,37 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-[#070A0F] text-slate-100 flex flex-col items-center justify-start antialiased selection:bg-amber-400 selection:text-slate-950 font-['Plus_Jakarta_Sans',sans-serif]">
-      {/* Desktop Helper Bar (visible on md+ screens) */}
-      <div className="w-full bg-[#0D121B] border-b border-slate-800/80 px-4 py-2 hidden md:flex items-center justify-between text-xs text-slate-400 z-50">
+      {/* Desktop Institutional Header Bar (visible on md+ screens) */}
+      <div className="w-full bg-[#090D14] border-b border-slate-800/80 px-4 py-2 hidden md:flex items-center justify-between text-xs text-slate-400 z-50">
         <div className="flex items-center gap-3">
           <BrandLogo size="sm" showTagline={false} />
-          <span className="text-slate-600">|</span>
+          <span className="text-slate-700">|</span>
           <span className="flex items-center gap-1.5 text-slate-300">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Trading as <strong className="text-amber-400">{currentUser?.name}</strong> (Balance: ${currentUser?.balance.toFixed(2)})</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Account: <strong className="text-white">{currentUser?.name}</strong> <span className="font-mono text-amber-400 ml-1">${currentUser?.balance.toFixed(2)} USD</span></span>
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           <PWAInstallButton variant="button" />
-          <div className="bg-[#141B27] p-0.5 rounded-lg border border-slate-800 flex items-center gap-1">
+          <div className="bg-[#111723] p-0.5 rounded-lg border border-slate-800 flex items-center gap-1">
             <button
               onClick={() => setDesktopMode('mobile')}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors ${
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
                 desktopMode === 'mobile' ? 'bg-[#F5BA31] text-slate-950' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Smartphone className="w-3.5 h-3.5" />
-              <span>Mobile Frame (1:1 Design)</span>
+              <span>Compact View</span>
             </button>
             <button
               onClick={() => setDesktopMode('wide')}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors ${
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
                 desktopMode === 'wide' ? 'bg-[#F5BA31] text-slate-950' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Monitor className="w-3.5 h-3.5" />
-              <span>Full Screen</span>
+              <span>Wide Terminal</span>
             </button>
           </div>
         </div>
@@ -142,7 +138,7 @@ function AppContent() {
       {/* Main App Container */}
       <main className={`w-full relative transition-all duration-200 ${
         desktopMode === 'mobile'
-          ? 'max-w-[430px] min-h-screen sm:min-h-[920px] sm:my-6 sm:border sm:border-slate-800 sm:rounded-[40px] sm:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] overflow-hidden bg-[#0B0F17]'
+          ? 'max-w-[430px] min-h-screen sm:min-h-[920px] sm:my-6 sm:border sm:border-slate-800/90 sm:rounded-[36px] sm:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] overflow-hidden bg-[#0B0F17]'
           : 'max-w-5xl min-h-screen px-4 sm:px-6 py-4 bg-[#0B0F17]'
       }`}>
         {/* Top PWA Install Banner */}
@@ -151,8 +147,8 @@ function AppContent() {
         {activeTab === 'home' && (
           <DashboardView
             onOpenWallet={() => setActiveTab('funds_wallet')}
-            onOpenWithdraw={() => setIsWithdrawModalOpen(true)}
-            onOpenInvest={() => setIsInvestModalOpen(true)}
+            onOpenWithdraw={() => setActiveTab('withdraw')}
+            onOpenCommunity={() => setActiveTab('community')}
             onOpenTrade={handleOpenTradeTab}
             onSelectAssetToTrade={handleSelectAssetToTrade}
             onViewAllMarkets={() => setActiveTab('trade')}
@@ -162,6 +158,21 @@ function AppContent() {
         {activeTab === 'funds_wallet' && (
           <FundsWalletPage
             onBack={() => setActiveTab('home')}
+            onGoToTrade={() => setActiveTab('trade')}
+          />
+        )}
+
+        {activeTab === 'withdraw' && (
+          <WithdrawPage
+            onBack={() => setActiveTab('home')}
+            onOpenDeposit={() => setActiveTab('funds_wallet')}
+          />
+        )}
+
+        {activeTab === 'community' && (
+          <CommunityPage
+            onBack={() => setActiveTab('home')}
+            onSelectAssetToTrade={handleSelectAssetToTrade}
             onGoToTrade={() => setActiveTab('trade')}
           />
         )}
@@ -180,7 +191,7 @@ function AppContent() {
             </div>
             <WalletView
               onOpenDeposit={() => setActiveTab('funds_wallet')}
-              onOpenWithdraw={() => setIsWithdrawModalOpen(true)}
+              onOpenWithdraw={() => setActiveTab('withdraw')}
             />
           </div>
         )}
@@ -208,28 +219,21 @@ function AppContent() {
         )}
 
         {/* Fixed Bottom Navigation Bar */}
-        <BottomNav activeTab={activeTab === 'funds_wallet' || activeTab === 'admin_dashboard' ? 'settings' : activeTab} onChangeTab={setActiveTab} />
+        <BottomNav
+          activeTab={
+            activeTab === 'funds_wallet' || activeTab === 'withdraw'
+              ? 'wallet'
+              : activeTab === 'community'
+              ? 'home'
+              : activeTab === 'admin_dashboard'
+              ? 'settings'
+              : activeTab
+          }
+          onChangeTab={setActiveTab}
+        />
       </main>
 
       {/* Popups & Modals */}
-      <InvestModal
-        isOpen={isInvestModalOpen}
-        onClose={() => setIsInvestModalOpen(false)}
-        onOpenDeposit={() => {
-          setIsInvestModalOpen(false);
-          setActiveTab('funds_wallet');
-        }}
-      />
-
-      <WithdrawModal
-        isOpen={isWithdrawModalOpen}
-        onClose={() => setIsWithdrawModalOpen(false)}
-        onOpenDeposit={() => {
-          setIsWithdrawModalOpen(false);
-          setActiveTab('funds_wallet');
-        }}
-      />
-
       <TradeModal
         isOpen={isTradeModalOpen}
         onClose={() => setIsTradeModalOpen(false)}

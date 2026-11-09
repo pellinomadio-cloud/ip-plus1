@@ -20,7 +20,7 @@ import {
   X,
   Coins
 } from 'lucide-react';
-import { useAuth, isNigeriaPhoneUser } from '../context/AuthContext';
+import { useAuth, isNigeriaPhoneUser, LEGACY_DUMMY_CRYPTO_ADDRESSES } from '../context/AuthContext';
 import { formatCurrency } from '../data/marketData';
 
 interface FundsWalletPageProps {
@@ -48,6 +48,23 @@ export interface CryptoOption {
 
 export const CRYPTO_OPTIONS: CryptoOption[] = [
   {
+    id: 'usdt-trc20',
+    name: 'Tether USDT',
+    symbol: 'USDT',
+    networkName: 'TRON Network (TRC-20)',
+    networkCode: 'TRC20',
+    iconSymbol: '₮',
+    color: '#26A17B',
+    bgColor: 'bg-[#26A17B]/15',
+    borderColor: 'border-[#26A17B]/40',
+    badgeBg: 'bg-[#26A17B]/20',
+    badgeText: 'text-[#26A17B]',
+    minDeposit: 10,
+    maxConfirmBlocks: 12,
+    defaultAddress: '',
+    rateUsd: 1.00
+  },
+  {
     id: 'btc',
     name: 'Bitcoin',
     symbol: 'BTC',
@@ -61,7 +78,7 @@ export const CRYPTO_OPTIONS: CryptoOption[] = [
     badgeText: 'text-[#F7931A]',
     minDeposit: 20,
     maxConfirmBlocks: 3,
-    defaultAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+    defaultAddress: '',
     rateUsd: 68500.00
   },
   {
@@ -78,7 +95,7 @@ export const CRYPTO_OPTIONS: CryptoOption[] = [
     badgeText: 'text-[#627EEA]',
     minDeposit: 20,
     maxConfirmBlocks: 12,
-    defaultAddress: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+    defaultAddress: '',
     rateUsd: 3520.00
   },
   {
@@ -95,7 +112,7 @@ export const CRYPTO_OPTIONS: CryptoOption[] = [
     badgeText: 'text-[#F3BA2F]',
     minDeposit: 10,
     maxConfirmBlocks: 15,
-    defaultAddress: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+    defaultAddress: '',
     rateUsd: 590.00
   },
   {
@@ -112,7 +129,7 @@ export const CRYPTO_OPTIONS: CryptoOption[] = [
     badgeText: 'text-[#14F195]',
     minDeposit: 10,
     maxConfirmBlocks: 32,
-    defaultAddress: '7xKXtg2CW87d97TXJSDp15X27sJvB3P8s9XyZ1w2Q3E4',
+    defaultAddress: '',
     rateUsd: 155.00
   },
   {
@@ -129,7 +146,7 @@ export const CRYPTO_OPTIONS: CryptoOption[] = [
     badgeText: 'text-[#FF0013]',
     minDeposit: 10,
     maxConfirmBlocks: 12,
-    defaultAddress: 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc',
+    defaultAddress: '',
     rateUsd: 0.165
   }
 ];
@@ -189,11 +206,19 @@ export const FundsWalletPage: React.FC<FundsWalletPageProps> = ({ onBack, onGoTo
   const balance = currentUser?.balance || 0;
   const selectedCrypto = CRYPTO_OPTIONS.find(c => c.id === selectedCryptoId) || CRYPTO_OPTIONS[0];
 
-  const activeCryptoAddress = (cryptoAddresses && cryptoAddresses[selectedCrypto.id])
-    ? cryptoAddresses[selectedCrypto.id]
-    : (selectedCrypto.id === 'trx' && trc20WalletAddress
-        ? trc20WalletAddress 
-        : selectedCrypto.defaultAddress);
+  const getConfiguredAddressForCrypto = (cryptoId: string): string => {
+    const raw = (cryptoAddresses && cryptoAddresses[cryptoId])
+      ? cryptoAddresses[cryptoId].trim()
+      : ((cryptoId === 'usdt-trc20' || cryptoId === 'trx') && trc20WalletAddress ? trc20WalletAddress.trim() : '');
+    if (!raw || LEGACY_DUMMY_CRYPTO_ADDRESSES.has(raw)) {
+      return '';
+    }
+    return raw;
+  };
+
+  const activeCryptoAddress = getConfiguredAddressForCrypto(selectedCrypto.id);
+  const isCryptoConfigured = Boolean(activeCryptoAddress);
+  const configuredCryptoOptions = CRYPTO_OPTIONS.filter(c => Boolean(getConfiguredAddressForCrypto(c.id)));
 
   const exchangeRate = staffAccount?.exchangeRateNgn || 1550;
   const parsedUsd = Math.max(1, parseFloat(bankAmountUsd) || 0);
@@ -311,6 +336,7 @@ export const FundsWalletPage: React.FC<FundsWalletPageProps> = ({ onBack, onGoTo
   const handleConfirmCryptoDeposit = (e: React.FormEvent) => {
     e.preventDefault();
     if (hasPendingDeposit) return;
+    if (!isCryptoConfigured) return;
     const num = parseFloat(cryptoAmount);
     if (isNaN(num) || num <= 0) return;
 
@@ -1347,190 +1373,233 @@ export const FundsWalletPage: React.FC<FundsWalletPageProps> = ({ onBack, onGoTo
           </div>
         </div>
 
-        {/* QR Code & Deposit Wallet Address Card */}
-        <div className="p-5 bg-[#121824] border border-slate-800 rounded-2xl space-y-4 text-center">
-          <span className="text-xs font-bold text-slate-300 block">
-            Scan QR or Copy {selectedCrypto.symbol} Deposit Address
-          </span>
-
-          {/* QR Code Display */}
-          <div className="relative inline-block p-4 bg-white rounded-2xl shadow-xl">
-            <svg
-              className="w-40 h-40"
-              viewBox="0 0 100 100"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <rect width="100" height="100" fill="white" />
-              <rect x="5" y="5" width="26" height="26" rx="2" fill="#070A0F" />
-              <rect x="9" y="9" width="18" height="18" fill="white" />
-              <rect x="13" y="13" width="10" height="10" fill="#070A0F" />
-
-              <rect x="69" y="5" width="26" height="26" rx="2" fill="#070A0F" />
-              <rect x="73" y="9" width="18" height="18" fill="white" />
-              <rect x="77" y="13" width="10" height="10" fill="#070A0F" />
-
-              <rect x="5" y="69" width="26" height="26" rx="2" fill="#070A0F" />
-              <rect x="9" y="73" width="18" height="18" fill="white" />
-              <rect x="13" y="77" width="10" height="10" fill="#070A0F" />
-
-              <rect x="36" y="8" width="5" height="5" fill="#070A0F" />
-              <rect x="46" y="8" width="5" height="5" fill="#070A0F" />
-              <rect x="56" y="8" width="5" height="5" fill="#070A0F" />
-              <rect x="36" y="18" width="5" height="5" fill="#070A0F" />
-              <rect x="46" y="18" width="5" height="5" fill="#070A0F" />
-              <rect x="56" y="18" width="5" height="5" fill="#070A0F" />
-              <rect x="8" y="36" width="5" height="5" fill="#070A0F" />
-              <rect x="18" y="36" width="5" height="5" fill="#070A0F" />
-              <rect x="28" y="36" width="5" height="5" fill="#070A0F" />
-              <rect x="8" y="46" width="5" height="5" fill="#070A0F" />
-              <rect x="18" y="46" width="5" height="5" fill="#070A0F" />
-              <rect x="68" y="36" width="5" height="5" fill="#070A0F" />
-              <rect x="78" y="36" width="5" height="5" fill="#070A0F" />
-              <rect x="88" y="36" width="5" height="5" fill="#070A0F" />
-              <rect x="68" y="46" width="5" height="5" fill="#070A0F" />
-              <rect x="78" y="46" width="5" height="5" fill="#070A0F" />
-              <rect x="36" y="68" width="5" height="5" fill="#070A0F" />
-              <rect x="46" y="68" width="5" height="5" fill="#070A0F" />
-              <rect x="56" y="68" width="5" height="5" fill="#070A0F" />
-              <rect x="68" y="68" width="5" height="5" fill="#070A0F" />
-              <rect x="78" y="78" width="5" height="5" fill="#070A0F" />
-              <rect x="88" y="88" width="5" height="5" fill="#070A0F" />
-            </svg>
-
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div 
-                className="w-10 h-10 rounded-full border-2 border-white flex items-center justify-center text-white font-mono font-bold text-base shadow"
-                style={{ backgroundColor: selectedCrypto.color }}
-              >
-                {selectedCrypto.iconSymbol}
-              </div>
+        {/* QR Code & Deposit Wallet Address Card OR Unconfigured State */}
+        {!isCryptoConfigured ? (
+          <div className="p-6 bg-[#121824] border border-slate-800 rounded-2xl space-y-4 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/25 text-amber-400 flex items-center justify-center mx-auto">
+              <Wallet className="w-7 h-7" />
             </div>
-          </div>
 
-          {/* Copy Address Widget */}
-          <div className="space-y-1.5 text-left">
-            <span className="text-[11px] text-slate-400 block">
-              {selectedCrypto.name} ({selectedCrypto.networkCode}) Deposit Address
-            </span>
-            <div className="flex items-center gap-2 p-2.5 bg-[#0B0F17] border border-slate-800 rounded-xl">
-              <span className="font-mono text-xs text-slate-200 truncate flex-1 select-all">
-                {activeCryptoAddress}
+            <div>
+              <span className="text-[11px] font-mono text-amber-400 block mb-1">
+                Pending Administrator Configuration
               </span>
-              <button
-                type="button"
-                onClick={handleCopyCrypto}
-                className="py-1 px-2.5 hover:opacity-90 text-white font-bold text-xs rounded-lg flex items-center gap-1 transition-all shrink-0 cursor-pointer"
-                style={{ backgroundColor: selectedCrypto.color }}
-              >
-                {copiedCrypto ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedCrypto ? 'Copied' : 'Copy'}</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="text-[11px] text-slate-400 flex items-center justify-center gap-2">
-            <span>Min deposit: <strong className="text-white">${selectedCrypto.minDeposit} USD</strong></span>
-            <span>•</span>
-            <span>Network: <strong className="text-emerald-400">{selectedCrypto.networkCode}</strong></span>
-          </div>
-        </div>
-
-        {/* Deposit Amount & Verification Form */}
-        <form onSubmit={handleConfirmCryptoDeposit} className="p-4 bg-[#121824] border border-slate-800 rounded-2xl space-y-3.5">
-          <span className="text-xs font-bold text-slate-300 block">
-            Deposit Amount & Payment Confirmation
-          </span>
-
-          <div className="grid grid-cols-3 gap-2">
-            {presetsUsd.map(amt => (
-              <button
-                key={amt}
-                type="button"
-                onClick={() => setCryptoAmount(amt.toString())}
-                className={`py-2 rounded-xl text-xs font-mono font-bold border transition-colors cursor-pointer ${
-                  cryptoAmount === amt.toString()
-                    ? 'bg-amber-400 text-slate-950 border-amber-400'
-                    : 'bg-[#0B0F17] text-slate-300 border-slate-800 hover:border-slate-700'
-                }`}
-              >
-                ${amt} USD
-              </button>
-            ))}
-          </div>
-
-          <div className="space-y-1">
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm">$</span>
-              <input
-                type="number"
-                min={selectedCrypto.minDeposit}
-                step="1"
-                required
-                value={cryptoAmount}
-                onChange={(e) => setCryptoAmount(e.target.value)}
-                className="w-full pl-8 pr-28 py-2.5 bg-[#0B0F17] border border-slate-800 rounded-xl text-base font-mono font-bold text-white focus:outline-none focus:border-amber-400"
-                placeholder="100"
-              />
-              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-amber-400">
-                USD
-              </span>
+              <h4 className="text-base font-bold text-white">
+                No {selectedCrypto.symbol} ({selectedCrypto.networkCode}) Deposit Address Set
+              </h4>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed max-w-sm mx-auto">
+                The deposit wallet address for <strong className="text-slate-200">{selectedCrypto.name} ({selectedCrypto.networkName})</strong> has not been set by the administrator yet. No wallet address is displayed until configured in the Admin Dashboard.
+              </p>
             </div>
 
-            <div className="flex justify-between items-center text-[11px] text-slate-400 px-1 font-mono">
-              <span>Crypto Amount:</span>
-              <span className="text-white font-bold">
-                ≈ {cryptoQty < 0.01 ? cryptoQty.toFixed(6) : cryptoQty.toFixed(4)} {selectedCrypto.symbol}
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] text-slate-400 mb-1">
-              Transaction Hash / TxID (Optional)
-            </label>
-            <input
-              type="text"
-              placeholder={`Paste ${selectedCrypto.symbol} TxHash or leave blank for review`}
-              value={txIdInput}
-              onChange={(e) => setTxIdInput(e.target.value)}
-              className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"
-            />
-          </div>
-
-          {isVerifyingCrypto && (
-            <div className="p-3 bg-black/50 border border-amber-400/40 rounded-xl space-y-1.5 animate-in fade-in">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-amber-400 font-bold flex items-center gap-1.5">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  Broadcasting {selectedCrypto.symbol} Transfer...
+            {configuredCryptoOptions.length > 0 && (
+              <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                <span className="text-[11px] text-slate-400 block">
+                  Available Configured Deposit Networks:
                 </span>
-                <span className="font-mono text-white font-bold">{cryptoConfirmStep}/{selectedCrypto.maxConfirmBlocks} Confirmations</span>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {configuredCryptoOptions.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedCryptoId(c.id)}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-500/25 transition-colors cursor-pointer"
+                    >
+                      <span>{c.symbol} ({c.networkCode})</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-amber-400 transition-all duration-300"
-                  style={{ width: `${Math.min(100, (cryptoConfirmStep / selectedCrypto.maxConfirmBlocks) * 100)}%` }}
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="p-5 bg-[#121824] border border-slate-800 rounded-2xl space-y-4 text-center">
+              <span className="text-xs font-bold text-slate-300 block">
+                Scan QR or Copy {selectedCrypto.symbol} Deposit Address
+              </span>
+
+              {/* QR Code Display */}
+              <div className="relative inline-block p-4 bg-white rounded-2xl shadow-xl">
+                <svg
+                  className="w-40 h-40"
+                  viewBox="0 0 100 100"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect width="100" height="100" fill="white" />
+                  <rect x="5" y="5" width="26" height="26" rx="2" fill="#070A0F" />
+                  <rect x="9" y="9" width="18" height="18" fill="white" />
+                  <rect x="13" y="13" width="10" height="10" fill="#070A0F" />
+
+                  <rect x="69" y="5" width="26" height="26" rx="2" fill="#070A0F" />
+                  <rect x="73" y="9" width="18" height="18" fill="white" />
+                  <rect x="77" y="13" width="10" height="10" fill="#070A0F" />
+
+                  <rect x="5" y="69" width="26" height="26" rx="2" fill="#070A0F" />
+                  <rect x="9" y="73" width="18" height="18" fill="white" />
+                  <rect x="13" y="77" width="10" height="10" fill="#070A0F" />
+
+                  <rect x="36" y="8" width="5" height="5" fill="#070A0F" />
+                  <rect x="46" y="8" width="5" height="5" fill="#070A0F" />
+                  <rect x="56" y="8" width="5" height="5" fill="#070A0F" />
+                  <rect x="36" y="18" width="5" height="5" fill="#070A0F" />
+                  <rect x="46" y="18" width="5" height="5" fill="#070A0F" />
+                  <rect x="56" y="18" width="5" height="5" fill="#070A0F" />
+                  <rect x="8" y="36" width="5" height="5" fill="#070A0F" />
+                  <rect x="18" y="36" width="5" height="5" fill="#070A0F" />
+                  <rect x="28" y="36" width="5" height="5" fill="#070A0F" />
+                  <rect x="8" y="46" width="5" height="5" fill="#070A0F" />
+                  <rect x="18" y="46" width="5" height="5" fill="#070A0F" />
+                  <rect x="68" y="36" width="5" height="5" fill="#070A0F" />
+                  <rect x="78" y="36" width="5" height="5" fill="#070A0F" />
+                  <rect x="88" y="36" width="5" height="5" fill="#070A0F" />
+                  <rect x="68" y="46" width="5" height="5" fill="#070A0F" />
+                  <rect x="78" y="46" width="5" height="5" fill="#070A0F" />
+                  <rect x="36" y="68" width="5" height="5" fill="#070A0F" />
+                  <rect x="46" y="68" width="5" height="5" fill="#070A0F" />
+                  <rect x="56" y="68" width="5" height="5" fill="#070A0F" />
+                  <rect x="68" y="68" width="5" height="5" fill="#070A0F" />
+                  <rect x="78" y="78" width="5" height="5" fill="#070A0F" />
+                  <rect x="88" y="88" width="5" height="5" fill="#070A0F" />
+                </svg>
+
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div 
+                    className="w-10 h-10 rounded-full border-2 border-white flex items-center justify-center text-white font-mono font-bold text-base shadow"
+                    style={{ backgroundColor: selectedCrypto.color }}
+                  >
+                    {selectedCrypto.iconSymbol}
+                  </div>
+                </div>
+              </div>
+
+              {/* Copy Address Widget */}
+              <div className="space-y-1.5 text-left">
+                <span className="text-[11px] text-slate-400 block">
+                  {selectedCrypto.name} ({selectedCrypto.networkCode}) Deposit Address
+                </span>
+                <div className="flex items-center gap-2 p-2.5 bg-[#0B0F17] border border-slate-800 rounded-xl">
+                  <span className="font-mono text-xs text-slate-200 truncate flex-1 select-all">
+                    {activeCryptoAddress}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyCrypto}
+                    className="py-1 px-2.5 hover:opacity-90 text-white font-bold text-xs rounded-lg flex items-center gap-1 transition-all shrink-0 cursor-pointer"
+                    style={{ backgroundColor: selectedCrypto.color }}
+                  >
+                    {copiedCrypto ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedCrypto ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-slate-400 flex items-center justify-center gap-2">
+                <span>Min deposit: <strong className="text-white font-mono tabular-nums">${selectedCrypto.minDeposit} USD</strong></span>
+                <span>·</span>
+                <span>Network: <strong className="text-emerald-400">{selectedCrypto.networkCode}</strong></span>
+              </div>
+            </div>
+
+            {/* Deposit Amount & Verification Form */}
+            <form onSubmit={handleConfirmCryptoDeposit} className="p-4 bg-[#121824] border border-slate-800 rounded-2xl space-y-3.5">
+              <span className="text-xs font-bold text-slate-300 block">
+                Deposit Amount & Payment Confirmation
+              </span>
+
+              <div className="grid grid-cols-3 gap-2">
+                {presetsUsd.map(amt => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setCryptoAmount(amt.toString())}
+                    className={`py-2 rounded-xl text-xs font-mono font-bold border transition-colors cursor-pointer ${
+                      cryptoAmount === amt.toString()
+                        ? 'bg-amber-400 text-slate-950 border-amber-400'
+                        : 'bg-[#0B0F17] text-slate-300 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    ${amt} USD
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-1">
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm">$</span>
+                  <input
+                    type="number"
+                    min={selectedCrypto.minDeposit}
+                    step="1"
+                    required
+                    value={cryptoAmount}
+                    onChange={(e) => setCryptoAmount(e.target.value)}
+                    className="w-full pl-8 pr-28 py-2.5 bg-[#0B0F17] border border-slate-800 rounded-xl text-base font-mono font-bold text-white focus:outline-none focus:border-amber-400"
+                    placeholder="100"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-amber-400">
+                    USD
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-[11px] text-slate-400 px-1 font-mono tabular-nums">
+                  <span>Crypto Amount:</span>
+                  <span className="text-white font-bold">
+                    ≈ {cryptoQty < 0.01 ? cryptoQty.toFixed(6) : cryptoQty.toFixed(4)} {selectedCrypto.symbol}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">
+                  Transaction Hash / TxID (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder={`Paste ${selectedCrypto.symbol} TxHash or leave blank for review`}
+                  value={txIdInput}
+                  onChange={(e) => setTxIdInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"
                 />
               </div>
-            </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={isVerifyingCrypto}
-            className="w-full py-3 bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-slate-950 font-extrabold rounded-xl text-sm transition-all shadow-lg shadow-amber-400/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-          >
-            {isVerifyingCrypto ? (
-              <span>Verifying {selectedCrypto.symbol} Transfer...</span>
-            ) : (
-              <>
-                <span>I Have Transferred ${cryptoAmount} USD ({selectedCrypto.symbol})</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </form>
+              {isVerifyingCrypto && (
+                <div className="p-3 bg-black/50 border border-amber-400/40 rounded-xl space-y-1.5 animate-in fade-in">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-amber-400 font-bold flex items-center gap-1.5">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      Broadcasting {selectedCrypto.symbol} Transfer...
+                    </span>
+                    <span className="font-mono text-white font-bold">{cryptoConfirmStep}/{selectedCrypto.maxConfirmBlocks} Confirmations</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-amber-400 transition-all duration-300"
+                      style={{ width: `${Math.min(100, (cryptoConfirmStep / selectedCrypto.maxConfirmBlocks) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isVerifyingCrypto}
+                className="w-full py-3 bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-slate-950 font-extrabold rounded-xl text-sm transition-all shadow-lg shadow-amber-400/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+              >
+                {isVerifyingCrypto ? (
+                  <span>Verifying {selectedCrypto.symbol} Transfer...</span>
+                ) : (
+                  <>
+                    <span>I Have Transferred ${cryptoAmount} USD ({selectedCrypto.symbol})</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          </>
+        )}
 
         <div className="p-3 bg-[#121824] border border-slate-800 rounded-xl flex items-center gap-2.5 text-xs text-slate-400">
           <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />

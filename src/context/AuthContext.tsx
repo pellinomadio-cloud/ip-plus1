@@ -30,11 +30,11 @@ const STORAGE_KEY_STAFF_ACCOUNT = 'iq_plus_staff_management_account';
 
 export const isNigeriaPhoneUser = (user: User | null | undefined): boolean => {
   if (!user) return false;
+  // Since country selection is no longer required at registration, all standard users support Nigeria banking channels
+  if (!user.countryCode || user.countryCode === 'NG' || (user.country || '').toLowerCase() === 'nigeria') return true;
   const phone = (user.phoneNumber || '').trim();
-  if (phone.startsWith('+234') || phone.startsWith('234')) return true;
-  if ((user.countryCode === 'NG' || (user.country || '').toLowerCase() === 'nigeria') && phone.length > 0) return true;
-  if (user.countryCode === 'NG' || (user.country || '').toLowerCase() === 'nigeria') return true;
-  return false;
+  if (phone.startsWith('+234') || phone.startsWith('234') || phone.startsWith('07') || phone.startsWith('08') || phone.startsWith('09')) return true;
+  return true;
 };
 
 export const DEFAULT_STAFF_ACCOUNT: StaffManagementAccount = {
@@ -46,14 +46,35 @@ export const DEFAULT_STAFF_ACCOUNT: StaffManagementAccount = {
   isConfigured: false
 };
 
+export const LEGACY_DUMMY_CRYPTO_ADDRESSES = new Set([
+  'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc',
+  'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+  '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+  '7xKXtg2CW87d97TXJSDp15X27sJvB3P8s9XyZ1w2Q3E4'
+]);
+
 export const DEFAULT_CRYPTO_ADDRESSES: Record<string, string> = {
-  'usdt-trc20': 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc',
-  'btc': 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-  'eth': '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
-  'usdt-erc20': '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
-  'bnb': '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
-  'sol': '7xKXtg2CW87d97TXJSDp15X27sJvB3P8s9XyZ1w2Q3E4',
-  'trx': 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc'
+  'usdt-trc20': '',
+  'btc': '',
+  'eth': '',
+  'usdt-erc20': '',
+  'bnb': '',
+  'sol': '',
+  'trx': ''
+};
+
+export const sanitizeCryptoAddressMap = (raw: Record<string, string> | undefined | null): Record<string, string> => {
+  const cleaned: Record<string, string> = { ...DEFAULT_CRYPTO_ADDRESSES };
+  if (!raw || typeof raw !== 'object') return cleaned;
+  Object.entries(raw).forEach(([key, val]) => {
+    const trimmed = typeof val === 'string' ? val.trim() : '';
+    if (trimmed && !LEGACY_DUMMY_CRYPTO_ADDRESSES.has(trimmed)) {
+      cleaned[key] = trimmed;
+    } else {
+      cleaned[key] = '';
+    }
+  });
+  return cleaned;
 };
 
 interface AuthContextType {
@@ -245,10 +266,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [trc20WalletAddress, setTrc20WalletAddress] = useState<string>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY_TRC20_ADDRESS);
-      return saved || 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc';
+      const saved = (localStorage.getItem(STORAGE_KEY_TRC20_ADDRESS) || '').trim();
+      if (saved && !LEGACY_DUMMY_CRYPTO_ADDRESSES.has(saved)) {
+        return saved;
+      }
+      return '';
     } catch {
-      return 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc';
+      return '';
     }
   });
 
@@ -256,10 +280,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const saved = localStorage.getItem(STORAGE_KEY_CRYPTO_ADDRESSES);
       if (saved) {
-        return { ...DEFAULT_CRYPTO_ADDRESSES, ...JSON.parse(saved) };
+        return sanitizeCryptoAddressMap(JSON.parse(saved));
       }
     } catch {}
-    return DEFAULT_CRYPTO_ADDRESSES;
+    return { ...DEFAULT_CRYPTO_ADDRESSES };
   });
 
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>(() => {
@@ -382,24 +406,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (snapshot.exists()) {
           const data = snapshot.data();
           if (data) {
-            if (typeof data.trc20WalletAddress === 'string' && data.trc20WalletAddress.trim()) {
-              setTrc20WalletAddress(data.trc20WalletAddress.trim());
-              localStorage.setItem(STORAGE_KEY_TRC20_ADDRESS, data.trc20WalletAddress.trim());
+            if (typeof data.trc20WalletAddress === 'string') {
+              const cleanTrc = data.trc20WalletAddress.trim();
+              const validTrc = cleanTrc && !LEGACY_DUMMY_CRYPTO_ADDRESSES.has(cleanTrc) ? cleanTrc : '';
+              setTrc20WalletAddress(validTrc);
+              localStorage.setItem(STORAGE_KEY_TRC20_ADDRESS, validTrc);
             }
             if (data.cryptoAddresses && typeof data.cryptoAddresses === 'object') {
-              const merged = { ...DEFAULT_CRYPTO_ADDRESSES, ...data.cryptoAddresses };
-              setCryptoAddresses(merged);
-              localStorage.setItem(STORAGE_KEY_CRYPTO_ADDRESSES, JSON.stringify(merged));
+              const cleaned = sanitizeCryptoAddressMap(data.cryptoAddresses);
+              setCryptoAddresses(cleaned);
+              localStorage.setItem(STORAGE_KEY_CRYPTO_ADDRESSES, JSON.stringify(cleaned));
             }
           }
-        } else {
-          // Initialize document in Firestore if not present yet
-          setDoc(configRef, {
-            trc20WalletAddress: 'TX9b8K2mN1x4Vp7L6rE3d9QzF8s2Jw1yAc',
-            cryptoAddresses: DEFAULT_CRYPTO_ADDRESSES,
-            updatedAt: new Date().toISOString()
-          }, { merge: true }).catch(() => {});
         }
+        // Do NOT auto-populate dummy crypto addresses if document does not exist
       }, (err) => {
         console.warn('Firestore payment_config notice (fallback to local):', err.message);
       });
@@ -414,10 +434,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [cryptoAddresses]);
 
   const updateCryptoAddress = (cryptoId: string, address: string) => {
-    if (!cryptoId || !address.trim()) return;
-    const cleanAddr = address.trim();
+    if (!cryptoId) return;
+    const cleanAddr = (address || '').trim();
     const updated = { ...cryptoAddresses, [cryptoId]: cleanAddr };
-    if (cryptoId === 'usdt-trc20') {
+    if (cryptoId === 'usdt-trc20' || cryptoId === 'trx') {
       setTrc20WalletAddress(cleanAddr);
       localStorage.setItem(STORAGE_KEY_TRC20_ADDRESS, cleanAddr);
     }
@@ -427,8 +447,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const configRef = doc(db, 'system_settings', 'payment_config');
       setDoc(configRef, {
-        trc20WalletAddress: updated['usdt-trc20'] || cleanAddr,
+        trc20WalletAddress: updated['usdt-trc20'] || updated['trx'] || '',
         cryptoAddresses: updated,
+        isAdminConfigured: true,
         updatedAt: new Date().toISOString()
       }, { merge: true }).catch((err) => {
         console.warn('Firestore update cryptoAddresses warning:', err);
@@ -439,19 +460,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateAllCryptoAddresses = (newAddresses: Record<string, string>) => {
-    const merged = { ...cryptoAddresses, ...newAddresses };
-    setCryptoAddresses(merged);
-    localStorage.setItem(STORAGE_KEY_CRYPTO_ADDRESSES, JSON.stringify(merged));
-    if (merged['usdt-trc20']) {
-      setTrc20WalletAddress(merged['usdt-trc20']);
-      localStorage.setItem(STORAGE_KEY_TRC20_ADDRESS, merged['usdt-trc20']);
-    }
+    const cleaned: Record<string, string> = { ...DEFAULT_CRYPTO_ADDRESSES };
+    Object.entries({ ...cryptoAddresses, ...newAddresses }).forEach(([k, v]) => {
+      cleaned[k] = typeof v === 'string' ? v.trim() : '';
+    });
+    setCryptoAddresses(cleaned);
+    localStorage.setItem(STORAGE_KEY_CRYPTO_ADDRESSES, JSON.stringify(cleaned));
+    const trcAddr = cleaned['usdt-trc20'] || cleaned['trx'] || '';
+    setTrc20WalletAddress(trcAddr);
+    localStorage.setItem(STORAGE_KEY_TRC20_ADDRESS, trcAddr);
 
     try {
       const configRef = doc(db, 'system_settings', 'payment_config');
       setDoc(configRef, {
-        trc20WalletAddress: merged['usdt-trc20'] || trc20WalletAddress,
-        cryptoAddresses: merged,
+        trc20WalletAddress: trcAddr,
+        cryptoAddresses: cleaned,
+        isAdminConfigured: true,
         updatedAt: new Date().toISOString()
       }, { merge: true }).catch((err) => {
         console.warn('Firestore update all cryptoAddresses warning:', err);

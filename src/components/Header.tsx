@@ -11,8 +11,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenDeposit, onOpenWithdraw }) => {
-  const { currentUser, logout, isAuthenticated } = useAuth();
-  const { activeAlertsCount, openCreateAlertForAsset } = usePriceAlerts();
+  const { currentUser, logout } = useAuth();
+  const { unreadCount, openMessagesModal } = usePriceAlerts();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   return (
@@ -22,17 +22,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenDeposit, onOpenWithdraw })
 
       {/* Action buttons */}
       <div className="flex items-center gap-2">
-        {/* Price Alerts Bell Button */}
+        {/* Notifications & Messages Bell Button */}
         <button
-          onClick={() => openCreateAlertForAsset()}
-          className="relative w-10 h-10 rounded-full border border-slate-700/80 bg-[#141B27] flex items-center justify-center text-slate-300 hover:text-amber-400 hover:border-amber-400/50 transition-all focus:outline-none focus:ring-2 focus:ring-amber-400/40"
-          title="Price Point Push Alerts"
-          aria-label="Price Point Alerts"
+          onClick={() => openMessagesModal()}
+          className="relative w-10 h-10 rounded-full border border-slate-700/80 bg-[#141B27] flex items-center justify-center text-slate-300 hover:text-amber-400 hover:border-amber-400/50 transition-all focus:outline-none focus:ring-2 focus:ring-amber-400/40 cursor-pointer"
+          title="Notifications & Messages"
+          aria-label="Notifications & Messages"
         >
           <Bell className="w-5 h-5" />
-          {activeAlertsCount > 0 && (
+          {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 font-bold font-mono text-[10px] w-4 h-4 rounded-full flex items-center justify-center border-2 border-[#070A0F] shadow-sm">
-              {activeAlertsCount}
+              {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </button>

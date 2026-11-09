@@ -145,7 +145,7 @@ export interface DepositRequest {
   approvedAt?: string;
 }
 
-export type NavTab = 'home' | 'trade' | 'wallet' | 'funds_wallet' | 'history' | 'settings' | 'admin_dashboard';
+export type NavTab = 'home' | 'trade' | 'wallet' | 'funds_wallet' | 'withdraw' | 'community' | 'history' | 'settings' | 'admin_dashboard';
 
 export interface PriceAlert {
   id: string;
@@ -158,6 +158,19 @@ export interface PriceAlert {
   triggeredAt?: number;
   note?: string;
   soundEnabled?: boolean;
+}
+
+export interface BroadcastNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'message' | 'price_alert' | 'signal';
+  symbol?: string;
+  assetName?: string;
+  targetPrice?: number;
+  condition?: 'above' | 'below';
+  createdAt: number;
+  sender: string;
 }
 
 export interface InvestmentPlan {

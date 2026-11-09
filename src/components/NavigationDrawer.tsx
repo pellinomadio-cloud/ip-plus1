@@ -6,10 +6,10 @@ import {
   Wallet, 
   Clock, 
   Settings, 
-  MessageSquare, 
+  Users, 
   LogOut, 
   ShieldCheck, 
-  CreditCard,
+  ArrowUpToLine,
   ChevronRight
 } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
@@ -38,6 +38,8 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   const navItems: { tab: NavTab; label: string; icon: React.ElementType }[] = [
     { tab: 'home', label: 'Dashboard Home', icon: Home },
     { tab: 'trade', label: 'Trading Terminal (Candle Chart)', icon: TrendingUp },
+    { tab: 'community', label: 'Traders Community & Setups', icon: Users },
+    { tab: 'withdraw', label: 'Withdraw Funds (NGN Bank)', icon: ArrowUpToLine },
     { tab: 'wallet', label: 'Funds Wallet & Custody', icon: Wallet },
     { tab: 'history', label: 'Trade & Order History', icon: Clock },
     { tab: 'settings', label: 'Account & Security Settings', icon: Settings }
@@ -70,7 +72,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400">Live Account</span>
               <span className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full font-medium">
-                <ShieldCheck className="w-3 h-3" /> Level 2 Verified
+                <ShieldCheck className="w-3 h-3" /> Tier-2 Verified
               </span>
             </div>
 
@@ -93,7 +95,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
               }}
               className="w-full mt-1 py-1.5 bg-[#26A17B] hover:bg-[#208f6d] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors font-mono"
             >
-              <span>Deposit Crypto</span>
+              <span>Funds Wallet</span>
             </button>
           </div>
 

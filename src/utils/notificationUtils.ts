@@ -37,39 +37,52 @@ export function playAlertChime() {
 }
 
 export async function sendDevicePushNotification(title: string, body: string, tag?: string): Promise<boolean> {
-  if (!('Notification' in window)) {
-    console.warn('Browser does not support desktop notifications.');
+  if (typeof window === 'undefined' || !('Notification' in window)) {
     return false;
   }
 
-  if (Notification.permission === 'granted') {
+  let permission = Notification.permission;
+  if (permission === 'default') {
     try {
-      // Try service worker notification first if available
+      permission = await Notification.requestPermission();
+    } catch {
+      // ignore
+    }
+  }
+
+  if (permission === 'granted') {
+    try {
+      const uniqueTag = tag || `iq-plus-push-${Date.now()}`;
+      // Use Service Worker registration first so notifications appear on the device even when the app is in the background or minimized
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.getRegistration();
         if (registration && registration.showNotification) {
           await registration.showNotification(title, {
             body,
-            icon: '/icon-192.png',
-            badge: '/icon-192.png',
-            tag: tag || 'price-alert',
-            vibrate: [200, 100, 200, 100, 300],
-            data: { url: window.location.href }
+            icon: '/pwa-192x192.png',
+            badge: '/pwa-192x192.png',
+            tag: uniqueTag,
+            renotify: true,
+            requireInteraction: true,
+            vibrate: [250, 120, 250, 120, 350],
+            data: { url: window.location.origin }
           } as NotificationOptions);
           return true;
         }
       }
 
-      // Fallback to standard Window Notification
+      // Fallback to standard OS/Browser Notification API
       const notif = new Notification(title, {
         body,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        tag: tag || 'price-alert',
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
+        tag: uniqueTag,
+        requireInteraction: true,
       });
 
       notif.onclick = () => {
         window.focus();
+        notif.close();
       };
       return true;
     } catch (err) {

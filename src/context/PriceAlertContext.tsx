@@ -1,91 +1,97 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { PriceAlert } from '../types';
+import { PriceAlert, BroadcastNotification } from '../types';
 import { useMarket } from './MarketContext';
 import { playAlertChime, sendDevicePushNotification } from '../utils/notificationUtils';
+import { db } from '../firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 interface PriceAlertContextType {
-  alerts: PriceAlert[];
-  activeAlerts: PriceAlert[];
-  triggeredAlerts: PriceAlert[];
-  activeAlertsCount: number;
+  // User-facing messages inbox (read-only for users)
+  messages: BroadcastNotification[];
+  unreadCount: number;
+  markAllAsRead: () => void;
+  lastTriggeredNotification: BroadcastNotification | null;
+  clearLastTriggeredNotification: () => void;
+
+  // Modal state for Messages Inbox
+  isAlertModalOpen: boolean;
+  setIsAlertModalOpen: (open: boolean) => void;
+  openMessagesModal: () => void;
+
+  // Device notification permission state
   notificationPermission: NotificationPermission;
   isSupported: boolean;
   requestPermission: () => Promise<boolean>;
-  addAlert: (data: { symbol: string; assetName: string; targetPrice: number; condition?: 'above' | 'below'; note?: string }) => void;
-  removeAlert: (id: string) => void;
-  clearTriggeredAlerts: () => void;
-  toggleAlertSound: (id: string) => void;
-  favoriteSymbols: string[];
-  toggleFavoriteSymbol: (symbol: string) => void;
-  isFavoriteSymbol: (symbol: string) => boolean;
-  lastTriggeredAlert: PriceAlert | null;
-  clearLastTriggeredAlert: () => void;
-  isAlertModalOpen: boolean;
-  setIsAlertModalOpen: (open: boolean) => void;
-  presetAssetForModal: string | null;
-  openCreateAlertForAsset: (assetSymbol?: string) => void;
-  testNotification: () => Promise<void>;
+
+  // Admin-only Price Point Alert & Broadcast Controls (used in AdminDashboard)
+  adminPriceAlerts: PriceAlert[];
+  adminAddPriceAlert: (data: {
+    symbol: string;
+    assetName: string;
+    targetPrice: number;
+    condition: 'above' | 'below';
+    note?: string;
+  }) => void;
+  adminRemovePriceAlert: (id: string) => void;
+  adminTriggerPriceAlertNow: (alertId: string) => void;
+  adminSendBroadcastMessage: (data: {
+    title: string;
+    message: string;
+    type?: 'message' | 'price_alert' | 'signal';
+    symbol?: string;
+    assetName?: string;
+    targetPrice?: number;
+    condition?: 'above' | 'below';
+  }) => void;
+  adminDeleteBroadcastMessage: (id: string) => void;
+  adminClearAllMessages: () => void;
 }
 
 const PriceAlertContext = createContext<PriceAlertContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'iq_trading_price_alerts';
-const FAVORITES_STORAGE_KEY = 'iq_trading_favorite_symbols';
-
-const DEFAULT_ALERTS: PriceAlert[] = [
-  {
-    id: 'sample-btc-1',
-    symbol: 'BTC/USD',
-    assetName: 'Bitcoin',
-    targetPrice: 95000,
-    condition: 'above',
-    createdAt: Date.now() - 3600000,
-    triggered: false,
-    note: 'Resistance breakout target',
-    soundEnabled: true,
-  },
-  {
-    id: 'sample-gold-1',
-    symbol: 'XAU/USD',
-    assetName: 'Gold',
-    targetPrice: 2650,
-    condition: 'below',
-    createdAt: Date.now() - 1800000,
-    triggered: false,
-    note: 'Support dip re-entry',
-    soundEnabled: true,
-  }
-];
-
-const DEFAULT_FAVORITES = ['BTC/USD', 'EUR/USD', 'XAU/USD', 'ETH/USD', 'SOL/USD'];
+const MESSAGES_STORAGE_KEY = 'iq_trading_broadcast_messages_v2';
+const ADMIN_ALERTS_STORAGE_KEY = 'iq_trading_admin_price_alerts_v2';
+const DELIVERED_IDS_STORAGE_KEY = 'iq_trading_delivered_notif_ids_v2';
+const LAST_READ_TS_KEY = 'iq_trading_last_read_notif_ts_v2';
 
 export const PriceAlertProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { assets } = useMarket();
 
-  // Load alerts from localStorage
-  const [alerts, setAlerts] = useState<PriceAlert[]>(() => {
+  // Sent messages / notifications inbox
+  const [messages, setMessages] = useState<BroadcastNotification[]>(() => {
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const saved = localStorage.getItem(MESSAGES_STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {
-      console.error('Failed to load price alerts:', e);
+      console.error('Failed to load broadcast messages:', e);
     }
-    return DEFAULT_ALERTS;
+    return [];
   });
 
-  // Favorite symbols
-  const [favoriteSymbols, setFavoriteSymbols] = useState<string[]>(() => {
+  // Admin-configured global price point alerts
+  const [adminPriceAlerts, setAdminPriceAlerts] = useState<PriceAlert[]>(() => {
     try {
-      const saved = localStorage.getItem(FAVORITES_STORAGE_KEY);
+      const saved = localStorage.getItem(ADMIN_ALERTS_STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {
-      console.error('Failed to load favorite symbols:', e);
+      console.error('Failed to load admin price alerts:', e);
     }
-    return DEFAULT_FAVORITES;
+    return [];
+  });
+
+  const [lastReadTimestamp, setLastReadTimestamp] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(LAST_READ_TS_KEY);
+      return saved ? Number(saved) || 0 : 0;
+    } catch {
+      return 0;
+    }
   });
 
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(() => {
@@ -95,31 +101,210 @@ export const PriceAlertProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return 'default';
   });
 
-  const [lastTriggeredAlert, setLastTriggeredAlert] = useState<PriceAlert | null>(null);
+  const [lastTriggeredNotification, setLastTriggeredNotification] = useState<BroadcastNotification | null>(null);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState<boolean>(false);
-  const [presetAssetForModal, setPresetAssetForModal] = useState<string | null>(null);
 
   const isSupported = typeof window !== 'undefined' && 'Notification' in window;
 
-  // Sync alerts to localStorage
+  // Keep track of notification IDs already pushed on this device so we only push once per message
+  const deliveredIdsRef = useRef<Set<string>>(new Set());
+  const isInitialMountRef = useRef<boolean>(true);
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
+
   useEffect(() => {
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(alerts));
-    } catch (e) {
-      console.error('Failed to save price alerts:', e);
+      const savedIds = localStorage.getItem(DELIVERED_IDS_STORAGE_KEY);
+      if (savedIds) {
+        const arr: string[] = JSON.parse(savedIds);
+        arr.forEach(id => deliveredIdsRef.current.add(id));
+      } else {
+        // Mark any pre-existing messages on initial boot as already delivered
+        messages.forEach(m => deliveredIdsRef.current.add(m.id));
+        localStorage.setItem(DELIVERED_IDS_STORAGE_KEY, JSON.stringify(Array.from(deliveredIdsRef.current)));
+      }
+    } catch {
+      // ignore
     }
-  }, [alerts]);
+    isInitialMountRef.current = false;
+  }, []);
 
-  // Sync favorites to localStorage
-  useEffect(() => {
+  const markIdDelivered = useCallback((id: string) => {
+    deliveredIdsRef.current.add(id);
     try {
-      localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoriteSymbols));
-    } catch (e) {
-      console.error('Failed to save favorites:', e);
+      const arr = Array.from(deliveredIdsRef.current).slice(-200);
+      localStorage.setItem(DELIVERED_IDS_STORAGE_KEY, JSON.stringify(arr));
+    } catch {
+      // ignore
     }
-  }, [favoriteSymbols]);
+  }, []);
 
-  // Request Notification permission
+  // Automatically request device notification permission on first user gesture so devices receive background push alerts
+  useEffect(() => {
+    if (!isSupported || Notification.permission !== 'default') return;
+
+    const handleFirstInteraction = () => {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission()
+          .then(perm => setNotificationPermission(perm))
+          .catch(() => {});
+      }
+      window.removeEventListener('click', handleFirstInteraction);
+    };
+
+    window.addEventListener('click', handleFirstInteraction, { once: true });
+    return () => window.removeEventListener('click', handleFirstInteraction);
+  }, [isSupported]);
+
+  // Helper to fire device push notification + audio chime + in-app toast for any newly arrived message
+  const deliverIncomingNotifications = useCallback((incomingList: BroadcastNotification[]) => {
+    if (!Array.isArray(incomingList) || incomingList.length === 0) return;
+
+    // Sort newest first
+    const sorted = [...incomingList].sort((a, b) => b.createdAt - a.createdAt);
+
+    sorted.forEach(notif => {
+      if (!deliveredIdsRef.current.has(notif.id)) {
+        markIdDelivered(notif.id);
+        // Only trigger live push if created within the last 5 minutes
+        if (Date.now() - notif.createdAt < 5 * 60 * 1000) {
+          playAlertChime();
+          sendDevicePushNotification(notif.title, notif.message, notif.id);
+          setLastTriggeredNotification(notif);
+        }
+      }
+    });
+  }, [markIdDelivered]);
+
+  // Persist helper to Firestore + localStorage + BroadcastChannel
+  const syncNotificationsState = useCallback(
+    async (nextMessages: BroadcastNotification[], nextAdminAlerts: PriceAlert[]) => {
+      try {
+        localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(nextMessages));
+        localStorage.setItem(ADMIN_ALERTS_STORAGE_KEY, JSON.stringify(nextAdminAlerts));
+      } catch (e) {
+        console.error('Failed to save notifications state to localStorage:', e);
+      }
+
+      if (broadcastChannelRef.current) {
+        try {
+          broadcastChannelRef.current.postMessage({
+            type: 'SYNC_NOTIFICATIONS',
+            messages: nextMessages,
+            adminPriceAlerts: nextAdminAlerts,
+          });
+        } catch {
+          // ignore
+        }
+      }
+
+      try {
+        const configRef = doc(db, 'system_settings', 'notifications_config');
+        await setDoc(
+          configRef,
+          {
+            messages: nextMessages.slice(0, 100),
+            adminPriceAlerts: nextAdminAlerts.slice(0, 50),
+            updatedAt: Date.now(),
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        console.warn('Firestore notifications sync note:', err);
+      }
+    },
+    []
+  );
+
+  // Set up BroadcastChannel & storage event listener for instant cross-tab / background PWA delivery
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const bc = new BroadcastChannel('iq_plus_global_push');
+      broadcastChannelRef.current = bc;
+      bc.onmessage = (ev) => {
+        if (ev.data && ev.data.type === 'SYNC_NOTIFICATIONS') {
+          if (Array.isArray(ev.data.messages)) {
+            setMessages(ev.data.messages);
+            deliverIncomingNotifications(ev.data.messages);
+          }
+          if (Array.isArray(ev.data.adminPriceAlerts)) {
+            setAdminPriceAlerts(ev.data.adminPriceAlerts);
+          }
+        }
+      };
+    }
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === MESSAGES_STORAGE_KEY && e.newValue) {
+        try {
+          const parsed: BroadcastNotification[] = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setMessages(parsed);
+            deliverIncomingNotifications(parsed);
+          }
+        } catch {
+          // ignore
+        }
+      } else if (e.key === ADMIN_ALERTS_STORAGE_KEY && e.newValue) {
+        try {
+          const parsed: PriceAlert[] = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setAdminPriceAlerts(parsed);
+          }
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      if (broadcastChannelRef.current) {
+        broadcastChannelRef.current.close();
+        broadcastChannelRef.current = null;
+      }
+    };
+  }, [deliverIncomingNotifications]);
+
+  // Real-time Firestore listener so all users across all devices get notified immediately
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    try {
+      const configRef = doc(db, 'system_settings', 'notifications_config');
+      unsubscribe = onSnapshot(
+        configRef,
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (Array.isArray(data.messages)) {
+              setMessages(data.messages);
+              try {
+                localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(data.messages));
+              } catch {}
+              deliverIncomingNotifications(data.messages);
+            }
+            if (Array.isArray(data.adminPriceAlerts)) {
+              setAdminPriceAlerts(data.adminPriceAlerts);
+              try {
+                localStorage.setItem(ADMIN_ALERTS_STORAGE_KEY, JSON.stringify(data.adminPriceAlerts));
+              } catch {}
+            }
+          }
+        },
+        (err) => {
+          console.warn('Firestore notifications listener note:', err.message);
+        }
+      );
+    } catch (e) {
+      console.warn('Firestore notifications setup note:', e);
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [deliverIncomingNotifications]);
+
+  // Request Notification permission explicitly
   const requestPermission = async (): Promise<boolean> => {
     if (!isSupported) return false;
     try {
@@ -132,115 +317,188 @@ export const PriceAlertProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  // Toggle favorite
-  const toggleFavoriteSymbol = useCallback((symbol: string) => {
-    setFavoriteSymbols(prev => {
-      if (prev.includes(symbol)) {
-        return prev.filter(s => s !== symbol);
-      } else {
-        return [...prev, symbol];
-      }
-    });
-  }, []);
-
-  const isFavoriteSymbol = useCallback((symbol: string) => {
-    return favoriteSymbols.includes(symbol);
-  }, [favoriteSymbols]);
-
-  // Add alert
-  const addAlert = useCallback((data: {
-    symbol: string;
-    assetName: string;
-    targetPrice: number;
-    condition?: 'above' | 'below';
-    note?: string;
-  }) => {
-    const asset = assets.find(a => a.symbol === data.symbol);
-    const currentPrice = asset ? asset.price : data.targetPrice;
-    
-    // Auto-determine condition if not specified
-    const condition = data.condition || (data.targetPrice >= currentPrice ? 'above' : 'below');
-
-    const newAlert: PriceAlert = {
-      id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      symbol: data.symbol,
-      assetName: data.assetName,
-      targetPrice: data.targetPrice,
-      condition,
-      createdAt: Date.now(),
-      triggered: false,
-      note: data.note || '',
-      soundEnabled: true,
-    };
-
-    setAlerts(prev => [newAlert, ...prev]);
-
-    // Request notification permission if still default
-    if (notificationPermission === 'default' && isSupported) {
-      Notification.requestPermission().then(perm => setNotificationPermission(perm));
+  // Mark all messages as read when user views the notification inbox
+  const markAllAsRead = useCallback(() => {
+    const now = Date.now();
+    setLastReadTimestamp(now);
+    try {
+      localStorage.setItem(LAST_READ_TS_KEY, String(now));
+    } catch {
+      // ignore
     }
-  }, [assets, notificationPermission, isSupported]);
-
-  // Remove alert
-  const removeAlert = useCallback((id: string) => {
-    setAlerts(prev => prev.filter(a => a.id !== id));
   }, []);
 
-  // Clear triggered history
-  const clearTriggeredAlerts = useCallback(() => {
-    setAlerts(prev => prev.filter(a => !a.triggered));
-  }, []);
+  const openMessagesModal = useCallback(() => {
+    setIsAlertModalOpen(true);
+    markAllAsRead();
+  }, [markAllAsRead]);
 
-  // Toggle sound for an alert
-  const toggleAlertSound = useCallback((id: string) => {
-    setAlerts(prev => prev.map(a => a.id === id ? { ...a, soundEnabled: !a.soundEnabled } : a));
-  }, []);
+  // Admin: Send instant broadcast message or price alert notification to all users
+  const adminSendBroadcastMessage = useCallback(
+    (data: {
+      title: string;
+      message: string;
+      type?: 'message' | 'price_alert' | 'signal';
+      symbol?: string;
+      assetName?: string;
+      targetPrice?: number;
+      condition?: 'above' | 'below';
+    }) => {
+      const newNotif: BroadcastNotification = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        title: data.title.trim(),
+        message: data.message.trim(),
+        type: data.type || 'message',
+        symbol: data.symbol,
+        assetName: data.assetName,
+        targetPrice: data.targetPrice,
+        condition: data.condition,
+        createdAt: Date.now(),
+        sender: 'IQ-PLUS Trading Desk',
+      };
 
-  // Price tracking & alert checking engine
+      const nextMessages = [newNotif, ...messages].slice(0, 100);
+      setMessages(nextMessages);
+      deliverIncomingNotifications(nextMessages);
+      syncNotificationsState(nextMessages, adminPriceAlerts);
+    },
+    [messages, adminPriceAlerts, deliverIncomingNotifications, syncNotificationsState]
+  );
+
+  // Admin: Set a global price point alert that monitors live market prices and notifies all users when hit
+  const adminAddPriceAlert = useCallback(
+    (data: {
+      symbol: string;
+      assetName: string;
+      targetPrice: number;
+      condition: 'above' | 'below';
+      note?: string;
+    }) => {
+      const newAlert: PriceAlert = {
+        id: `adm-alert-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        symbol: data.symbol,
+        assetName: data.assetName,
+        targetPrice: data.targetPrice,
+        condition: data.condition,
+        createdAt: Date.now(),
+        triggered: false,
+        note: data.note?.trim() || '',
+        soundEnabled: true,
+      };
+
+      const nextAlerts = [newAlert, ...adminPriceAlerts];
+      setAdminPriceAlerts(nextAlerts);
+      syncNotificationsState(messages, nextAlerts);
+    },
+    [adminPriceAlerts, messages, syncNotificationsState]
+  );
+
+  // Admin: Remove a global price alert
+  const adminRemovePriceAlert = useCallback(
+    (id: string) => {
+      const nextAlerts = adminPriceAlerts.filter(a => a.id !== id);
+      setAdminPriceAlerts(nextAlerts);
+      syncNotificationsState(messages, nextAlerts);
+    },
+    [adminPriceAlerts, messages, syncNotificationsState]
+  );
+
+  // Admin: Trigger an existing price alert immediately to all users
+  const adminTriggerPriceAlertNow = useCallback(
+    (alertId: string) => {
+      const target = adminPriceAlerts.find(a => a.id === alertId);
+      if (!target) return;
+
+      const updatedAlerts = adminPriceAlerts.map(a =>
+        a.id === alertId ? { ...a, triggered: true, triggeredAt: Date.now() } : a
+      );
+
+      const directionText = target.condition === 'above' ? 'broke above' : 'dropped below';
+      const newNotif: BroadcastNotification = {
+        id: `msg-alert-${target.id}-${Date.now()}`,
+        title: `Price Alert: ${target.symbol} at $${target.targetPrice.toLocaleString()}`,
+        message:
+          target.note ||
+          `${target.assetName} (${target.symbol}) ${directionText} target price $${target.targetPrice.toLocaleString()}.`,
+        type: 'price_alert',
+        symbol: target.symbol,
+        assetName: target.assetName,
+        targetPrice: target.targetPrice,
+        condition: target.condition,
+        createdAt: Date.now(),
+        sender: 'Market Execution Desk',
+      };
+
+      const nextMessages = [newNotif, ...messages].slice(0, 100);
+      setAdminPriceAlerts(updatedAlerts);
+      setMessages(nextMessages);
+      deliverIncomingNotifications(nextMessages);
+      syncNotificationsState(nextMessages, updatedAlerts);
+    },
+    [adminPriceAlerts, messages, deliverIncomingNotifications, syncNotificationsState]
+  );
+
+  // Admin: Delete a sent broadcast message
+  const adminDeleteBroadcastMessage = useCallback(
+    (id: string) => {
+      const nextMessages = messages.filter(m => m.id !== id);
+      setMessages(nextMessages);
+      syncNotificationsState(nextMessages, adminPriceAlerts);
+    },
+    [messages, adminPriceAlerts, syncNotificationsState]
+  );
+
+  const adminClearAllMessages = useCallback(() => {
+    setMessages([]);
+    syncNotificationsState([], adminPriceAlerts);
+  }, [adminPriceAlerts, syncNotificationsState]);
+
+  // Global Price Tracking Engine: checks admin-configured price alerts against live asset prices
   const previousPricesRef = useRef<{ [symbol: string]: number }>({});
 
   useEffect(() => {
-    if (!assets || assets.length === 0) return;
+    if (!assets || assets.length === 0 || adminPriceAlerts.length === 0) return;
 
-    let updatedAlerts = false;
-    const currentAlerts = [...alerts];
+    let alertsChanged = false;
+    const nextAlerts = [...adminPriceAlerts];
+    const newlyTriggeredMessages: BroadcastNotification[] = [];
 
     assets.forEach(asset => {
       const prevPrice = previousPricesRef.current[asset.symbol] ?? asset.price;
       const currentPrice = asset.price;
 
-      currentAlerts.forEach((alert, index) => {
+      nextAlerts.forEach((alert, idx) => {
         if (alert.symbol === asset.symbol && !alert.triggered) {
-          let isConditionHit = false;
-
+          let hit = false;
           if (alert.condition === 'above') {
-            // Trigger if current price >= target OR crossed upwards
-            isConditionHit = currentPrice >= alert.targetPrice || (prevPrice < alert.targetPrice && currentPrice >= alert.targetPrice);
-          } else if (alert.condition === 'below') {
-            // Trigger if current price <= target OR crossed downwards
-            isConditionHit = currentPrice <= alert.targetPrice || (prevPrice > alert.targetPrice && currentPrice <= alert.targetPrice);
+            hit = currentPrice >= alert.targetPrice || (prevPrice < alert.targetPrice && currentPrice >= alert.targetPrice);
+          } else {
+            hit = currentPrice <= alert.targetPrice || (prevPrice > alert.targetPrice && currentPrice <= alert.targetPrice);
           }
 
-          if (isConditionHit) {
-            updatedAlerts = true;
-            const triggeredAlert: PriceAlert = {
+          if (hit) {
+            alertsChanged = true;
+            nextAlerts[idx] = {
               ...alert,
               triggered: true,
               triggeredAt: Date.now(),
             };
 
-            currentAlerts[index] = triggeredAlert;
-            setLastTriggeredAlert(triggeredAlert);
-
-            // Play sound if enabled
-            if (alert.soundEnabled !== false) {
-              playAlertChime();
-            }
-
-            // Fire native device notification
-            const title = `🚨 Target Hit: ${alert.symbol}`;
-            const body = `${alert.assetName} reached $${currentPrice.toLocaleString()}! Target was $${alert.targetPrice.toLocaleString()} (${alert.condition.toUpperCase()}).`;
-            sendDevicePushNotification(title, body, `alert-${alert.id}`);
+            const directionLabel = alert.condition === 'above' ? 'rose above' : 'dropped below';
+            newlyTriggeredMessages.push({
+              id: `msg-auto-${alert.id}`,
+              title: `Market Alert: ${alert.symbol} Hit $${alert.targetPrice.toLocaleString()}`,
+              message:
+                alert.note ||
+                `${alert.assetName} (${alert.symbol}) ${directionLabel} $${alert.targetPrice.toLocaleString()} (Live: $${currentPrice.toLocaleString()}).`,
+              type: 'price_alert',
+              symbol: alert.symbol,
+              assetName: alert.assetName,
+              targetPrice: alert.targetPrice,
+              condition: alert.condition,
+              createdAt: Date.now(),
+              sender: 'Market Execution Desk',
+            });
           }
         }
       });
@@ -248,78 +506,46 @@ export const PriceAlertProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       previousPricesRef.current[asset.symbol] = currentPrice;
     });
 
-    if (updatedAlerts) {
-      setAlerts(currentAlerts);
-    }
-  }, [assets, alerts]);
+    if (alertsChanged && newlyTriggeredMessages.length > 0) {
+      // Avoid duplicate messages with the same deterministic ID
+      const existingIds = new Set(messages.map(m => m.id));
+      const uniqueNew = newlyTriggeredMessages.filter(m => !existingIds.has(m.id));
+      const nextMessages = [...uniqueNew, ...messages].slice(0, 100);
 
-  const clearLastTriggeredAlert = useCallback(() => {
-    setLastTriggeredAlert(null);
+      setAdminPriceAlerts(nextAlerts);
+      setMessages(nextMessages);
+      deliverIncomingNotifications(nextMessages);
+      syncNotificationsState(nextMessages, nextAlerts);
+    }
+  }, [assets, adminPriceAlerts, messages, deliverIncomingNotifications, syncNotificationsState]);
+
+  const clearLastTriggeredNotification = useCallback(() => {
+    setLastTriggeredNotification(null);
   }, []);
 
-  const openCreateAlertForAsset = useCallback((assetSymbol?: string) => {
-    if (assetSymbol) {
-      setPresetAssetForModal(assetSymbol);
-    } else {
-      setPresetAssetForModal(null);
-    }
-    setIsAlertModalOpen(true);
-  }, []);
-
-  const testNotification = async () => {
-    if (notificationPermission !== 'granted') {
-      const granted = await requestPermission();
-      if (!granted) return;
-    }
-
-    playAlertChime();
-    await sendDevicePushNotification(
-      '🔔 Device Notification Active',
-      'Price alerts will notify you instantly when your target market price is hit!'
-    );
-
-    const testAlert: PriceAlert = {
-      id: `test-${Date.now()}`,
-      symbol: 'BTC/USD',
-      assetName: 'Bitcoin Test Alert',
-      targetPrice: 98500,
-      condition: 'above',
-      createdAt: Date.now(),
-      triggered: true,
-      triggeredAt: Date.now(),
-      note: 'Test push notification fired successfully',
-      soundEnabled: true,
-    };
-    setLastTriggeredAlert(testAlert);
-  };
-
-  const activeAlerts = alerts.filter(a => !a.triggered);
-  const triggeredAlerts = alerts.filter(a => a.triggered);
+  const unreadCount = messages.filter(m => m.createdAt > lastReadTimestamp).length;
 
   return (
     <PriceAlertContext.Provider
       value={{
-        alerts,
-        activeAlerts,
-        triggeredAlerts,
-        activeAlertsCount: activeAlerts.length,
+        messages,
+        unreadCount,
+        markAllAsRead,
+        lastTriggeredNotification,
+        clearLastTriggeredNotification,
+        isAlertModalOpen,
+        setIsAlertModalOpen,
+        openMessagesModal,
         notificationPermission,
         isSupported,
         requestPermission,
-        addAlert,
-        removeAlert,
-        clearTriggeredAlerts,
-        toggleAlertSound,
-        favoriteSymbols,
-        toggleFavoriteSymbol,
-        isFavoriteSymbol,
-        lastTriggeredAlert,
-        clearLastTriggeredAlert,
-        isAlertModalOpen,
-        setIsAlertModalOpen,
-        presetAssetForModal,
-        openCreateAlertForAsset,
-        testNotification,
+        adminPriceAlerts,
+        adminAddPriceAlert,
+        adminRemovePriceAlert,
+        adminTriggerPriceAlertNow,
+        adminSendBroadcastMessage,
+        adminDeleteBroadcastMessage,
+        adminClearAllMessages,
       }}
     >
       {children}

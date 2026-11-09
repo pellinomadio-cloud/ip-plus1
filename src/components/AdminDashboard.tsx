@@ -21,11 +21,19 @@ import {
   CreditCard,
   Building2,
   Eye,
-  FileText
+  FileText,
+  Bell,
+  Send,
+  Trash2,
+  TrendingUp,
+  TrendingDown,
+  Zap
 } from 'lucide-react';
 import { User, DepositRequest } from '../types';
 import { formatCurrency } from '../data/marketData';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, LEGACY_DUMMY_CRYPTO_ADDRESSES } from '../context/AuthContext';
+import { usePriceAlerts } from '../context/PriceAlertContext';
+import { useMarket } from '../context/MarketContext';
 import { db } from '../firebase';
 import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { CRYPTO_OPTIONS, CryptoOption } from './FundsWalletPage';
@@ -51,11 +59,93 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     updateStaffAccount
   } = useAuth();
 
+  const { assets } = useMarket();
+  const {
+    messages,
+    adminPriceAlerts,
+    adminAddPriceAlert,
+    adminRemovePriceAlert,
+    adminTriggerPriceAlertNow,
+    adminSendBroadcastMessage,
+    adminDeleteBroadcastMessage,
+    adminClearAllMessages,
+  } = usePriceAlerts();
+
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newBalanceInput, setNewBalanceInput] = useState<string>('');
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Admin Global Price Alert & Broadcast Form State
+  const [notifMode, setNotifMode] = useState<'price_alert' | 'broadcast'>('price_alert');
+  const [alertSymbol, setAlertSymbol] = useState<string>(assets[0]?.symbol || 'BTC/USD');
+  const [alertTargetPrice, setAlertTargetPrice] = useState<string>(assets[0]?.price?.toString() || '68500');
+  const [alertCondition, setAlertCondition] = useState<'above' | 'below'>('above');
+  const [alertNote, setAlertNote] = useState<string>('');
+  const [broadcastTitle, setBroadcastTitle] = useState<string>('');
+  const [broadcastBody, setBroadcastBody] = useState<string>('');
+  const [pushSuccessNotice, setPushSuccessNotice] = useState<string>('');
+
+  const selectedAlertAsset = assets.find(a => a.symbol === alertSymbol) || assets[0];
+
+  const handleSelectAlertAsset = (sym: string) => {
+    setAlertSymbol(sym);
+    const found = assets.find(a => a.symbol === sym);
+    if (found) {
+      setAlertTargetPrice(found.price.toString());
+    }
+  };
+
+  const handleCreateAdminPriceAlert = (e: React.FormEvent, pushImmediately = false) => {
+    e.preventDefault();
+    const numPrice = parseFloat(alertTargetPrice);
+    if (!numPrice || isNaN(numPrice) || numPrice <= 0 || !selectedAlertAsset) return;
+
+    if (pushImmediately) {
+      const dirText = alertCondition === 'above' ? 'broke above' : 'dropped below';
+      adminSendBroadcastMessage({
+        title: `Price Alert: ${selectedAlertAsset.symbol} Hit $${numPrice.toLocaleString()}`,
+        message:
+          alertNote.trim() ||
+          `${selectedAlertAsset.name} (${selectedAlertAsset.symbol}) ${dirText} target price $${numPrice.toLocaleString()}.`,
+        type: 'price_alert',
+        symbol: selectedAlertAsset.symbol,
+        assetName: selectedAlertAsset.name,
+        targetPrice: numPrice,
+        condition: alertCondition,
+      });
+      setPushSuccessNotice(`Instant price alert for ${selectedAlertAsset.symbol} ($${numPrice.toLocaleString()}) pushed to all users' devices!`);
+    } else {
+      adminAddPriceAlert({
+        symbol: selectedAlertAsset.symbol,
+        assetName: selectedAlertAsset.name,
+        targetPrice: numPrice,
+        condition: alertCondition,
+        note: alertNote.trim(),
+      });
+      setPushSuccessNotice(`Global price alert set for ${selectedAlertAsset.symbol} at $${numPrice.toLocaleString()}. All users will be notified automatically when hit!`);
+    }
+
+    setAlertNote('');
+    setTimeout(() => setPushSuccessNotice(''), 4000);
+  };
+
+  const handleSendAdminBroadcast = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastTitle.trim() || !broadcastBody.trim()) return;
+
+    adminSendBroadcastMessage({
+      title: broadcastTitle.trim(),
+      message: broadcastBody.trim(),
+      type: 'message',
+    });
+
+    setPushSuccessNotice('Broadcast message sent! All users have been notified on their devices.');
+    setBroadcastTitle('');
+    setBroadcastBody('');
+    setTimeout(() => setPushSuccessNotice(''), 4000);
+  };
 
   // Staff Management Account Form State
   const [staffBankName, setStaffBankName] = useState<string>(staffAccount?.isConfigured ? staffAccount.bankName : '');
@@ -134,13 +224,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     }
   };
 
-  // Sync inputs with AuthContext addresses
+  // Sync inputs with AuthContext addresses (never fall back to dummy default addresses)
   useEffect(() => {
     const merged: Record<string, string> = {};
     CRYPTO_OPTIONS.forEach(c => {
-      merged[c.id] = (cryptoAddresses && cryptoAddresses[c.id])
-        ? cryptoAddresses[c.id]
-        : ((c.id === 'usdt-trc20' || c.id === 'trx') && trc20WalletAddress ? trc20WalletAddress : c.defaultAddress);
+      const raw = (cryptoAddresses && cryptoAddresses[c.id])
+        ? cryptoAddresses[c.id].trim()
+        : ((c.id === 'usdt-trc20' || c.id === 'trx') && trc20WalletAddress ? trc20WalletAddress.trim() : '');
+      merged[c.id] = raw && !LEGACY_DUMMY_CRYPTO_ADDRESSES.has(raw) ? raw : '';
     });
     setAddressInputs(merged);
   }, [cryptoAddresses, trc20WalletAddress]);
@@ -280,11 +371,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   };
 
   const handleSaveSingleAddress = (cryptoId: string) => {
-    const val = addressInputs[cryptoId];
-    if (!val || !val.trim()) return;
+    const val = (addressInputs[cryptoId] || '').trim();
     const crypto = CRYPTO_OPTIONS.find(c => c.id === cryptoId);
-    updateCryptoAddress(cryptoId, val.trim());
-    setWalletSavedMessage(`${crypto?.name || cryptoId} deposit address updated! Users on the deposit page will now see this address.`);
+    updateCryptoAddress(cryptoId, val);
+    setWalletSavedMessage(
+      val
+        ? `${crypto?.name || cryptoId} deposit address saved! Users will now see this address.`
+        : `${crypto?.name || cryptoId} deposit address cleared. Nothing will be shown until you set a new address.`
+    );
     setWalletSavedNotice(true);
     setTimeout(() => setWalletSavedNotice(false), 3500);
   };
@@ -398,7 +492,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                   Trading Win / Loss Outcome Control
                 </h3>
                 <span className="text-[10px] bg-amber-400/20 text-amber-300 font-mono font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
-                  GLOBAL RIGGING
+                  EXECUTION ENGINE
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 mt-1 leading-normal">
@@ -465,6 +559,302 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Admin Section: Global Push Notifications & Price Point Alerts */}
+        <div className="p-4 bg-[#121824] border border-amber-400/40 rounded-2xl space-y-4 shadow-lg shadow-black/30">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-amber-400" />
+                  Global Push Notifications & Price Point Alerts
+                </h3>
+                <span className="text-[10px] bg-amber-400/20 text-amber-300 font-mono font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
+                  ADMIN ONLY · INSTANT DEVICE PUSH
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Only Admin can set price point alerts or send messages. All users are notified instantly on their devices even when outside the app.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-[#0B0F17] p-1 rounded-xl border border-slate-800 shrink-0 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setNotifMode('price_alert')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  notifMode === 'price_alert'
+                    ? 'bg-[#F5BA31] text-slate-950'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Price Point Alert
+              </button>
+              <button
+                type="button"
+                onClick={() => setNotifMode('broadcast')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  notifMode === 'broadcast'
+                    ? 'bg-[#F5BA31] text-slate-950'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Send Message ({messages.length})
+              </button>
+            </div>
+          </div>
+
+          {pushSuccessNotice && (
+            <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{pushSuccessNotice}</span>
+            </div>
+          )}
+
+          {notifMode === 'price_alert' ? (
+            <div className="space-y-4">
+              <form onSubmit={(e) => handleCreateAdminPriceAlert(e, false)} className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Asset Selection */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Market Asset</label>
+                    <select
+                      value={alertSymbol}
+                      onChange={(e) => handleSelectAlertAsset(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-amber-400 cursor-pointer"
+                    >
+                      {assets.map(a => (
+                        <option key={a.symbol} value={a.symbol}>
+                          {a.symbol} — {a.name} (${a.price.toLocaleString()})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Target Price */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      Target Price (USD)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">$</span>
+                      <input
+                        type="number"
+                        step="any"
+                        required
+                        value={alertTargetPrice}
+                        onChange={(e) => setAlertTargetPrice(e.target.value)}
+                        className="w-full pl-7 pr-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs font-mono font-bold text-amber-400 focus:outline-none focus:border-amber-400"
+                        placeholder="Enter target price"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Condition */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">Trigger Condition</label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setAlertCondition('above')}
+                        className={`py-2 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1 cursor-pointer ${
+                          alertCondition === 'above'
+                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                            : 'bg-[#0B0F17] border-slate-800 text-slate-400'
+                        }`}
+                      >
+                        <TrendingUp className="w-3.5 h-3.5" />
+                        <span>Above</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAlertCondition('below')}
+                        className={`py-2 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1 cursor-pointer ${
+                          alertCondition === 'below'
+                            ? 'bg-rose-500/20 border-rose-500 text-rose-300'
+                            : 'bg-[#0B0F17] border-slate-800 text-slate-400'
+                        }`}
+                      >
+                        <TrendingDown className="w-3.5 h-3.5" />
+                        <span>Below</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Custom Alert Message Note */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Alert Message Shown to Users (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={alertNote}
+                    onChange={(e) => setAlertNote(e.target.value)}
+                    placeholder="e.g. Strong breakout above key resistance — High probability BUY setup active now!"
+                    className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="submit"
+                    className="py-2 px-4 bg-[#F5BA31] hover:bg-[#ffc842] text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Bell className="w-3.5 h-3.5" />
+                    <span>Set Automatic Price Alert</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleCreateAdminPriceAlert(e, true)}
+                    className="py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Push Price Alert to All Devices Now</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Active Admin Price Point Alerts List */}
+              {adminPriceAlerts.filter(a => !a.triggered).length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Active Global Price Triggers ({adminPriceAlerts.filter(a => !a.triggered).length})
+                  </span>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {adminPriceAlerts.filter(a => !a.triggered).map(alert => (
+                      <div
+                        key={alert.id}
+                        className="p-2.5 bg-[#0B0F17] border border-slate-800 rounded-xl flex items-center justify-between gap-2 text-xs"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white">{alert.symbol}</span>
+                            <span className="font-mono font-bold text-amber-400">
+                              ${alert.targetPrice.toLocaleString()}
+                            </span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                              alert.condition === 'above' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
+                            }`}>
+                              {alert.condition.toUpperCase()}
+                            </span>
+                          </div>
+                          {alert.note && (
+                            <p className="text-[11px] text-slate-400 mt-0.5">{alert.note}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              adminTriggerPriceAlertNow(alert.id);
+                              setPushSuccessNotice(`Triggered ${alert.symbol} alert to all users' devices!`);
+                              setTimeout(() => setPushSuccessNotice(''), 3500);
+                            }}
+                            className="px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-[11px] font-bold cursor-pointer flex items-center gap-1"
+                          >
+                            <Zap className="w-3 h-3" />
+                            <span>Push Now</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => adminRemovePriceAlert(alert.id)}
+                            className="p-1.5 bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 rounded-lg cursor-pointer"
+                            title="Remove alert"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <form onSubmit={handleSendAdminBroadcast} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Notification Title <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={broadcastTitle}
+                    onChange={(e) => setBroadcastTitle(e.target.value)}
+                    placeholder="e.g. Official Trading Signal: BTC/USD Breakout"
+                    className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Message Content <span className="text-rose-400">*</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    required
+                    value={broadcastBody}
+                    onChange={(e) => setBroadcastBody(e.target.value)}
+                    placeholder="Enter the message that will pop up on all users' devices and appear in their notification inbox..."
+                    className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 resize-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="py-2 px-4 bg-[#F5BA31] hover:bg-[#ffc842] text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Broadcast Message to All Devices Now</span>
+                </button>
+              </form>
+
+              {/* Sent Broadcast Messages History */}
+              {messages.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Sent Messages in User Inbox ({messages.length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={adminClearAllMessages}
+                      className="text-[11px] text-rose-400 hover:underline font-semibold cursor-pointer"
+                    >
+                      Clear All Messages
+                    </button>
+                  </div>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {messages.map(msg => (
+                      <div
+                        key={msg.id}
+                        className="p-2.5 bg-[#0B0F17] border border-slate-800 rounded-xl flex items-start justify-between gap-2 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white truncate">{msg.title}</span>
+                            <span className="text-[10px] font-mono text-slate-500 shrink-0">
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 truncate mt-0.5">{msg.message}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => adminDeleteBroadcastMessage(msg.id)}
+                          className="p-1 text-slate-500 hover:text-rose-400 cursor-pointer shrink-0"
+                          title="Delete message"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Admin Section: Company Staff Management Account (Nigeria Deposits) */}
@@ -659,6 +1049,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {CRYPTO_OPTIONS.map(crypto => {
               const currentVal = addressInputs[crypto.id] || '';
+              const savedVal = (cryptoAddresses && cryptoAddresses[crypto.id]) ? cryptoAddresses[crypto.id].trim() : '';
+              const isConfigured = Boolean(savedVal && !LEGACY_DUMMY_CRYPTO_ADDRESSES.has(savedVal));
               return (
                 <div key={crypto.id} className="p-3 bg-[#0B0F17] border border-slate-800/80 rounded-xl space-y-2">
                   <div className="flex items-center justify-between">
@@ -674,6 +1066,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         {crypto.networkCode}
                       </span>
                     </div>
+                    <span className={`text-[10px] font-mono font-bold ${isConfigured ? 'text-emerald-400' : 'text-amber-400/80'}`}>
+                      {isConfigured ? 'ACTIVE' : 'NOT SET'}
+                    </span>
                   </div>
 
                   <div className="flex gap-1.5">
@@ -682,8 +1077,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                       value={currentVal}
                       onChange={(e) => setAddressInputs(prev => ({ ...prev, [crypto.id]: e.target.value }))}
                       className="flex-1 px-2.5 py-1.5 bg-[#121824] border border-slate-800 rounded-lg text-[11px] font-mono text-white placeholder-slate-600 focus:outline-none focus:border-amber-400/70"
-                      placeholder={`Enter ${crypto.symbol} address...`}
+                      placeholder={`Not set — enter ${crypto.symbol} (${crypto.networkCode}) address...`}
                     />
+                    {isConfigured && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddressInputs(prev => ({ ...prev, [crypto.id]: '' }));
+                          updateCryptoAddress(crypto.id, '');
+                          setWalletSavedMessage(`${crypto.name} deposit address cleared.`);
+                          setWalletSavedNotice(true);
+                          setTimeout(() => setWalletSavedNotice(false), 3500);
+                        }}
+                        className="py-1.5 px-2 bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-bold text-xs rounded-lg transition-colors cursor-pointer shrink-0 border border-rose-500/30"
+                        title="Clear address"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleSaveSingleAddress(crypto.id)}

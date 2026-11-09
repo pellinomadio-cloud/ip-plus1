@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronRight, TrendingUp, TrendingDown, Search, ArrowUpDown, Bell } from 'lucide-react';
+import { ChevronRight, Search } from 'lucide-react';
 import { useMarket } from '../context/MarketContext';
-import { usePriceAlerts } from '../context/PriceAlertContext';
 import { AssetIcon } from './AssetIcon';
 import { formatCurrency } from '../data/marketData';
 import { MarketAsset } from '../types';
@@ -16,7 +15,6 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
   onViewAllMarkets 
 }) => {
   const { assets, lastPriceUpdate } = useMarket();
-  const { openCreateAlertForAsset } = usePriceAlerts();
 
   const [showAllModal, setShowAllModal] = useState(false);
   const [filterCategory, setFilterCategory] = useState<'all' | 'crypto' | 'commodities' | 'forex'>('all');
@@ -116,17 +114,6 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                     <span className="text-[10px]">{isUp ? '▲' : '▼'}</span>
                     <span>{isUp ? '+' : ''}{asset.changePercent24h.toFixed(2)}%</span>
                   </div>
-                </div>
-
-                <div 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openCreateAlertForAsset(asset.symbol);
-                  }}
-                  className="p-1.5 rounded-lg border border-slate-800 bg-[#0E1420] text-slate-400 hover:text-amber-400 hover:border-amber-400/50 transition-colors cursor-pointer"
-                  title={`Set price alert for ${asset.symbol}`}
-                >
-                  <Bell className="w-3.5 h-3.5" />
                 </div>
 
                 <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-300 transition-colors" />
