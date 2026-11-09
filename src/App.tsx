@@ -17,6 +17,7 @@ import { BottomNav } from './components/BottomNav';
 import { FundsWalletPage } from './components/FundsWalletPage';
 import { WithdrawPage } from './components/WithdrawPage';
 import { UpgradeAccountPage } from './components/UpgradeAccountPage';
+import { BankAccountVerifierPage } from './components/BankAccountVerifierPage';
 import { CommunityPage } from './components/CommunityPage';
 import { TradeModal } from './components/modals/TradeModal';
 import { TradeResultModal } from './components/modals/TradeResultModal';
@@ -168,6 +169,14 @@ function AppContent() {
             onBack={() => setActiveTab('home')}
             onOpenDeposit={() => setActiveTab('funds_wallet')}
             onOpenUpgrade={() => setActiveTab('upgrade')}
+            onOpenVerifier={() => setActiveTab('verify_bank')}
+          />
+        )}
+
+        {activeTab === 'verify_bank' && (
+          <BankAccountVerifierPage
+            onBack={() => setActiveTab('withdraw')}
+            onSelectVerifiedAccount={() => setActiveTab('withdraw')}
           />
         )}
 
@@ -230,7 +239,7 @@ function AppContent() {
         {/* Fixed Bottom Navigation Bar */}
         <BottomNav
           activeTab={
-            activeTab === 'funds_wallet' || activeTab === 'withdraw' || activeTab === 'upgrade'
+            activeTab === 'funds_wallet' || activeTab === 'withdraw' || activeTab === 'upgrade' || activeTab === 'verify_bank'
               ? 'wallet'
               : activeTab === 'community'
               ? 'home'

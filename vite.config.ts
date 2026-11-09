@@ -82,6 +82,47 @@ export default defineConfig(() => {
           type: 'module',
         },
       }),
+      {
+        name: 'bank-verification-api-middleware',
+        configureServer(server) {
+          server.middlewares.use('/api/verify-bank', (req, res) => {
+            if (req.method === 'POST') {
+              let body = '';
+              req.on('data', (chunk: Buffer) => {
+                body += chunk.toString();
+              });
+              req.on('end', async () => {
+                try {
+                  const apiRes = await fetch('https://api.wtproject.space/vrf/verify.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body,
+                  });
+                  const text = await apiRes.text();
+                  res.statusCode = apiRes.status;
+                  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+                  res.setHeader('Access-Control-Allow-Origin', '*');
+                  res.end(text);
+                } catch {
+                  res.statusCode = 502;
+                  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+                  res.setHeader('Access-Control-Allow-Origin', '*');
+                  res.end('Error: Failed to connect to verification server');
+                }
+              });
+            } else if (req.method === 'OPTIONS') {
+              res.statusCode = 204;
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+              res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+              res.end();
+            } else {
+              res.statusCode = 405;
+              res.end('Method Not Allowed');
+            }
+          });
+        },
+      },
     ],
     resolve: {
       alias: {

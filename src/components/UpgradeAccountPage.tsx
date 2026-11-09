@@ -8,13 +8,14 @@ import {
   Building2,
   Upload,
   ArrowRight,
-  Clock,
   Sparkles,
   Zap,
-  Lock
+  Image as ImageIcon,
+  X,
+  FileCheck,
+  Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { NIGERIAN_BANKS, NigerianBank } from '../data/countries';
 
 interface UpgradeAccountPageProps {
   onBack: () => void;
@@ -90,11 +91,8 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
   const { currentUser, staffAccount, submitBankTransferDeposit } = useAuth();
 
   const [selectedLevel, setSelectedLevel] = useState<number>(2);
-  const [selectedBank, setSelectedBank] = useState<NigerianBank>(NIGERIAN_BANKS[0]);
-  const [senderName, setSenderName] = useState(currentUser?.name || '');
-  const [senderBank, setSenderBank] = useState('Local Bank');
-  const [referenceOrSessionId, setReferenceOrSessionId] = useState('');
   const [proofFileName, setProofFileName] = useState('');
+  const [proofFileSize, setProofFileSize] = useState<string>('');
   const [proofPreviewUrl, setProofPreviewUrl] = useState('');
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,7 +100,7 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
   const [isSuccess, setIsSuccess] = useState(false);
 
   const activeTier = UPGRADE_TIERS.find(t => t.level === selectedLevel) || UPGRADE_TIERS[0];
-  const exchangeRate = staffAccount?.exchangeRateNgn || 1550;
+  const exchangeRate = staffAccount?.exchangeRateNgn || 1630;
   const approxUsd = Math.round((activeTier.priceNgn / exchangeRate) * 100) / 100;
 
   const handleCopy = (text: string, label: string) => {
@@ -116,38 +114,48 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       setProofFileName(file.name);
+      // Format file size
+      const sizeKb = Math.round(file.size / 1024);
+      setProofFileSize(sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`);
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setProofPreviewUrl(reader.result as string);
+        setStatusMessage(null);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleRemoveFile = () => {
+    setProofFileName('');
+    setProofFileSize('');
+    setProofPreviewUrl('');
   };
 
   const handleSubmitUpgrade = (e: React.FormEvent) => {
     e.preventDefault();
     setStatusMessage(null);
 
-    if (!senderName.trim()) {
-      setStatusMessage({ type: 'error', text: 'Please enter your account sender name.' });
-      return;
-    }
-
-    if (!referenceOrSessionId.trim()) {
-      setStatusMessage({ type: 'error', text: 'Please enter your transfer reference or session ID.' });
+    if (!proofPreviewUrl && !proofFileName) {
+      setStatusMessage({
+        type: 'error',
+        text: 'Please click and upload your bank transfer payment receipt before submitting.'
+      });
       return;
     }
 
     setIsSubmitting(true);
     setTimeout(() => {
+      const generatedRef = 'UPG-' + Math.floor(10000000 + Math.random() * 90000000);
       const res = submitBankTransferDeposit({
         amountUsd: approxUsd,
         amountNgn: activeTier.priceNgn,
-        senderName: senderName.trim(),
-        senderBank: `${selectedBank.name} (Upgrade Level ${activeTier.level})`,
-        referenceOrSessionId: referenceOrSessionId.trim(),
+        senderName: currentUser?.name || 'Verified Trader',
+        senderBank: `Upgrade ${activeTier.title}`,
+        referenceOrSessionId: generatedRef,
         proofImageUrl: proofPreviewUrl,
-        proofFileName: proofFileName || 'upgrade_receipt.jpg'
+        proofFileName: proofFileName || 'payment_receipt.jpg'
       });
 
       setIsSubmitting(false);
@@ -173,7 +181,7 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
           </button>
           <div>
             <h1 className="text-base font-bold text-white leading-tight">Account Upgrade</h1>
-            <p className="text-[11px] text-slate-400">Complete verification to process pending withdrawal</p>
+            <p className="text-[11px] text-slate-400">Upgrade level to clear pending withdrawals</p>
           </div>
         </div>
 
@@ -191,10 +199,10 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
           </div>
           <div className="space-y-1">
             <h4 className="text-xs sm:text-sm font-bold text-white">
-              Complete Account Level Upgrade
+              Upgrade to Complete Withdrawal
             </h4>
             <p className="text-[11px] text-slate-300 leading-relaxed">
-              Your withdrawal is currently pending. In compliance with security and settlement regulations, please upgrade your account to <strong className="text-amber-400">Level 2</strong> or higher to authorize and finalize your bank payout.
+              Your withdrawal is on pending verification. Make a transfer to the company account below, then click and upload your receipt to finalize your payout.
             </p>
           </div>
         </div>
@@ -206,9 +214,9 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Upgrade Payment Submitted!</h3>
+              <h3 className="text-lg font-bold text-white">Payment Uploaded Successfully!</h3>
               <p className="text-xs text-slate-300 mt-1 max-w-sm mx-auto leading-relaxed">
-                Your payment for <strong className="text-emerald-400">{activeTier.title} ({activeTier.priceFormatted})</strong> has been received and queued for admin verification.
+                Your payment receipt for <strong className="text-emerald-400">{activeTier.title} ({activeTier.priceFormatted})</strong> has been received and queued for review.
               </p>
             </div>
 
@@ -222,77 +230,83 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
                 <span className="text-emerald-400 font-bold">{activeTier.priceFormatted} NGN</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Status:</span>
-                <span className="text-amber-400 font-bold">Pending Review (Est. 5-10 mins)</span>
+                <span className="text-slate-400">Proof Status:</span>
+                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" /> Receipt Uploaded
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Approval Time:</span>
+                <span className="text-amber-400 font-bold">Est. 5-10 mins</span>
               </div>
             </div>
 
             <p className="text-[11px] text-slate-400">
-              Once verified by staff, your pending bank withdrawal will be processed and credited directly to your bank account.
+              Once approved by admin, your account will be upgraded to {activeTier.title} and your pending bank withdrawal will be released.
             </p>
 
             <button
               onClick={onSuccessReturn}
-              className="w-full py-3.5 bg-[#F5BA31] hover:bg-[#ffc842] text-slate-950 font-extrabold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/20"
+              className="w-full py-3.5 bg-[#F5BA31] hover:bg-[#ffc842] text-slate-950 font-extrabold rounded-xl text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/20"
             >
               <span>Back to Withdrawal Page</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         ) : (
-          /* Step 1: Select Level Tier */
           <div className="space-y-4">
+            {/* Step 1: Select Upgrade Level Tier */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-white flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>1. Select Account Verification Level</span>
+                  <span>1. Select Upgrade Tier</span>
                 </label>
-                <span className="text-[10px] text-slate-400">Select tier below</span>
+                <span className="text-[10px] text-slate-400 font-mono">4 tiers available</span>
               </div>
 
-              <div className="grid grid-cols-1 gap-2.5">
+              <div className="grid grid-cols-1 gap-2">
                 {UPGRADE_TIERS.map(tier => {
                   const isSelected = selectedLevel === tier.level;
                   return (
                     <div
                       key={tier.level}
                       onClick={() => setSelectedLevel(tier.level)}
-                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
+                      className={`p-3 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
                         isSelected
-                          ? 'bg-gradient-to-r from-amber-500/15 via-[#161F2E] to-[#121824] border-amber-400 shadow-lg shadow-amber-400/10'
+                          ? 'bg-gradient-to-r from-amber-500/20 via-[#182030] to-[#121824] border-amber-400 shadow-md shadow-amber-400/10'
                           : 'bg-[#111722] border-slate-800 hover:border-slate-700'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
                           <div
-                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
                               isSelected ? 'border-amber-400 bg-amber-400' : 'border-slate-600'
                             }`}
                           >
-                            {isSelected && <div className="w-2 h-2 rounded-full bg-slate-950" />}
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />}
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="text-sm font-bold text-white">{tier.title}</h3>
+                              <h3 className="text-xs sm:text-sm font-bold text-white">{tier.title}</h3>
                               {tier.badge && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                                <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
                                   {tier.badge}
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5">
+                            <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">
                               {tier.perks[0]}
                             </p>
                           </div>
                         </div>
 
                         <div className="text-right shrink-0">
-                          <span className="text-base font-extrabold font-mono text-emerald-400 tabular-nums">
+                          <span className="text-sm sm:text-base font-extrabold font-mono text-emerald-400 tabular-nums">
                             {tier.priceFormatted}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-mono block">NGN</span>
+                          <span className="text-[9px] text-slate-400 font-mono block">NGN</span>
                         </div>
                       </div>
                     </div>
@@ -302,14 +316,14 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
             </div>
 
             {/* Step 2: Company Payment Account Information */}
-            <div className="p-4 bg-[#111722] border border-slate-800 rounded-2xl space-y-3.5">
+            <div className="p-4 bg-[#111722] border border-slate-800 rounded-2xl space-y-3">
               <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
                 <div className="flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-emerald-400" />
-                  <h3 className="text-xs font-bold text-white">2. Company Payment Account</h3>
+                  <h3 className="text-xs font-bold text-white">2. Pay into Company Account</h3>
                 </div>
-                <span className="text-[10px] text-amber-400 font-mono font-bold">
-                  Exact Fee: {activeTier.priceFormatted}
+                <span className="text-[10px] text-amber-400 font-mono font-bold bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/25">
+                  Exact Amount: {activeTier.priceFormatted}
                 </span>
               </div>
 
@@ -330,7 +344,7 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
                         <button
                           type="button"
                           onClick={() => handleCopy(staffAccount.accountNumber, 'acc')}
-                          className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white cursor-pointer"
+                          className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white cursor-pointer transition-colors"
                           title="Copy Account Number"
                         >
                           <Copy className="w-3.5 h-3.5" />
@@ -360,18 +374,21 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
                 <div className="p-3 bg-amber-400/10 border border-amber-400/30 rounded-xl text-center space-y-1">
                   <p className="text-xs font-bold text-amber-300">Company Account Details Loading</p>
                   <p className="text-[11px] text-slate-400">
-                    Staff management payment accounts are being synchronized. Please refresh or check back shortly.
+                    Payment accounts are synchronizing. Please refresh or check back shortly.
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Step 3: Payment Confirmation & Upload Proof */}
+            {/* Step 3: Simple & Beautiful Click-and-Upload Payment Receipt */}
             <form onSubmit={handleSubmitUpgrade} className="p-4 bg-[#111722] border border-slate-800 rounded-2xl space-y-3.5">
-              <h3 className="text-xs font-bold text-white flex items-center gap-1.5 border-b border-slate-800/80 pb-2.5">
-                <Upload className="w-3.5 h-3.5 text-amber-400" />
-                <span>3. Upload Payment & Confirm Transfer</span>
-              </h3>
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+                <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <Upload className="w-3.5 h-3.5 text-amber-400" />
+                  <span>3. Click and Upload Payment Receipt</span>
+                </h3>
+                <span className="text-[10px] text-slate-400">Quick upload</span>
+              </div>
 
               {statusMessage && (
                 <div
@@ -386,103 +403,107 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
                 </div>
               )}
 
-              {/* Sender Bank Quick Select */}
+              {/* Upload Zone */}
               <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Select Bank Paid From</label>
-                <div className="grid grid-cols-5 gap-1 text-center">
-                  {[
-                    { id: 'opay', name: 'OPay' },
-                    { id: 'palmpay', name: 'PalmPay' },
-                    { id: 'moniepoint', name: 'Moniepoint' },
-                    { id: 'kuda', name: 'Kuda' },
-                    { id: 'gtb', name: 'GTBank' }
-                  ].map(b => (
-                    <button
-                      key={b.id}
-                      type="button"
-                      onClick={() => {
-                        const found = NIGERIAN_BANKS.find(item => item.id === b.id);
-                        if (found) setSelectedBank(found);
-                      }}
-                      className={`py-1.5 rounded-lg border text-[11px] font-bold transition-all cursor-pointer ${
-                        selectedBank.id === b.id
-                          ? 'bg-amber-400/20 border-amber-400 text-amber-300'
-                          : 'bg-[#0B0F17] border-slate-800 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {b.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sender Name */}
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Sender Account Name <span className="text-rose-400">*</span>
-                </label>
                 <input
-                  type="text"
-                  required
-                  placeholder="e.g. JOHN DOE"
-                  value={senderName}
-                  onChange={e => setSenderName(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 uppercase"
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="upgrade-receipt-upload"
                 />
-              </div>
 
-              {/* Reference / Session ID */}
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Transaction Reference or Session ID <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. 10000492819284918239"
-                  value={referenceOrSessionId}
-                  onChange={e => setReferenceOrSessionId(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              {/* Receipt File Upload */}
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Attach Payment Proof / Screenshot (Optional)
-                </label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    id="upgrade-receipt-upload"
-                  />
+                {!proofPreviewUrl ? (
+                  /* Beautiful Clickable Upload Dropzone */
                   <label
                     htmlFor="upgrade-receipt-upload"
-                    className="w-full px-3.5 py-2.5 bg-[#0B0F17] border border-dashed border-slate-700 hover:border-amber-400/60 rounded-xl text-xs text-slate-300 flex items-center justify-between cursor-pointer transition-colors"
+                    className="group w-full py-8 px-4 rounded-2xl border-2 border-dashed border-slate-700 hover:border-amber-400/80 bg-[#0B0F17] hover:bg-slate-900/60 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 shadow-inner"
                   >
-                    <span className="truncate">
-                      {proofFileName || 'Click to select transfer receipt image...'}
+                    <div className="w-14 h-14 rounded-2xl bg-amber-400/10 group-hover:bg-amber-400/20 text-amber-400 flex items-center justify-center mb-3 transition-transform group-hover:scale-110 shadow-lg shadow-amber-400/10">
+                      <Upload className="w-7 h-7" />
+                    </div>
+                    <span className="text-sm font-bold text-white group-hover:text-amber-400 transition-colors">
+                      Click to upload payment receipt
                     </span>
-                    <Upload className="w-4 h-4 text-amber-400 shrink-0 ml-2" />
+                    <span className="text-[11px] text-slate-400 mt-1 max-w-xs leading-relaxed">
+                      Supports JPG, PNG, or transfer screenshot from your bank app
+                    </span>
+                    <span className="mt-3 px-3 py-1 rounded-full text-[10px] font-mono font-bold bg-slate-800 text-slate-300 group-hover:bg-amber-400 group-hover:text-slate-950 transition-colors">
+                      Browse File / Gallery
+                    </span>
                   </label>
-                </div>
+                ) : (
+                  /* Uploaded Receipt Preview Card */
+                  <div className="p-3.5 bg-[#0B0F17] border border-emerald-500/35 rounded-2xl space-y-3 animate-in fade-in">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                          <FileCheck className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-white truncate max-w-[180px]">
+                              {proofFileName}
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.2 rounded font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                              Ready
+                            </span>
+                          </div>
+                          {proofFileSize && (
+                            <span className="text-[10px] text-slate-400 font-mono block">
+                              Size: {proofFileSize}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleRemoveFile}
+                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                        title="Remove file"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Image Preview Thumbnail */}
+                    {proofPreviewUrl.startsWith('data:image') && (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-800 max-h-48 bg-black/40 flex items-center justify-center">
+                        <img
+                          src={proofPreviewUrl}
+                          alt="Transfer Receipt Proof"
+                          className="max-h-44 w-auto object-contain rounded-lg"
+                        />
+                      </div>
+                    )}
+
+                    <label
+                      htmlFor="upgrade-receipt-upload"
+                      className="block text-center text-[11px] text-amber-400 hover:underline font-semibold cursor-pointer"
+                    >
+                      Click to choose a different receipt
+                    </label>
+                  </div>
+                )}
               </div>
 
               {/* Submit CTA */}
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3.5 bg-[#F5BA31] hover:bg-[#ffc842] active:scale-[0.99] text-slate-950 font-extrabold rounded-xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                disabled={isSubmitting || !proofFileName}
+                className="w-full py-3.5 bg-[#F5BA31] hover:bg-[#ffc842] active:scale-[0.99] text-slate-950 font-extrabold rounded-xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <span className="inline-block w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
                     <Zap className="w-4 h-4 fill-slate-950" />
-                    <span>Upload Payment & Submit Upgrade ({activeTier.priceFormatted})</span>
+                    <span>
+                      {proofFileName
+                        ? `Submit Payment & Upgrade (${activeTier.priceFormatted})`
+                        : `Upload Receipt to Upgrade (${activeTier.priceFormatted})`}
+                    </span>
                   </>
                 )}
               </button>

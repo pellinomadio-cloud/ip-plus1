@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft,
   ArrowUpToLine,
@@ -10,7 +10,8 @@ import {
   Search,
   ChevronDown,
   Clock,
-  RefreshCw
+  RefreshCw,
+  UserCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../data/marketData';
@@ -19,14 +20,16 @@ import {
   NigerianBank,
   USD_TO_NGN_EXCHANGE_RATE
 } from '../data/countries';
+import { verifyBankAccount } from '../services/bankVerificationService';
 
 interface WithdrawPageProps {
   onBack: () => void;
   onOpenDeposit: () => void;
   onOpenUpgrade?: () => void;
+  onOpenVerifier?: () => void;
 }
 
-export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposit, onOpenUpgrade }) => {
+export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposit, onOpenUpgrade, onOpenVerifier }) => {
   const { currentUser, withdrawFunds, transactions, staffAccount } = useAuth();
 
   // Amount & submission states
@@ -47,30 +50,69 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
   const [accountName, setAccountName] = useState(currentUser?.name || '');
   const [isVerifyingAccount, setIsVerifyingAccount] = useState(false);
   const [isAccountVerified, setIsAccountVerified] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+
+  // In-flight request lock & last verified key reference
+  const requestInProgressRef = useRef<boolean>(false);
+  const lastVerifiedKeyRef = useRef<string>('');
 
   const exchangeRate = staffAccount?.exchangeRateNgn || USD_TO_NGN_EXCHANGE_RATE;
   const currentBalance = currentUser?.balance || 0;
   const numAmount = parseFloat(amount) || 0;
   const estimatedNgn = Math.round(numAmount * exchangeRate);
 
-  // Verify 10-digit NUBAN account number
+  // Real-time automatic account verification via API once bank is selected & account number is 10 digits
   useEffect(() => {
     const cleanAcc = accountNumber.replace(/\D/g, '');
-    if (cleanAcc.length === 10) {
-      setIsVerifyingAccount(true);
-      const timer = setTimeout(() => {
-        setIsVerifyingAccount(false);
-        setIsAccountVerified(true);
-        if (!accountName.trim() && currentUser?.name) {
-          setAccountName(currentUser.name.toUpperCase());
-        }
-      }, 350);
-      return () => clearTimeout(timer);
-    } else {
+    if (cleanAcc.length !== 10) {
       setIsVerifyingAccount(false);
       setIsAccountVerified(false);
+      setVerificationError(null);
+      lastVerifiedKeyRef.current = '';
+      return;
     }
-  }, [accountNumber, selectedBank.id]);
+
+    const key = `${selectedBank.code}:${cleanAcc}`;
+    if (lastVerifiedKeyRef.current === key && isAccountVerified && !verificationError) {
+      return;
+    }
+
+    // Prevent duplicate request while one is running
+    if (requestInProgressRef.current) {
+      return;
+    }
+
+    setIsVerifyingAccount(true);
+    setVerificationError(null);
+    requestInProgressRef.current = true;
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await verifyBankAccount(selectedBank.code, cleanAcc);
+        if (res.success && res.accountName) {
+          setIsAccountVerified(true);
+          setAccountName(res.accountName.toUpperCase());
+          setVerificationError(null);
+          lastVerifiedKeyRef.current = key;
+        } else {
+          setIsAccountVerified(false);
+          setVerificationError(res.errorMessage || 'Error: Invalid Account');
+          lastVerifiedKeyRef.current = key;
+        }
+      } catch (err: any) {
+        setIsAccountVerified(false);
+        setVerificationError(err.message || 'Error: Verification request failed');
+      } finally {
+        setIsVerifyingAccount(false);
+        requestInProgressRef.current = false;
+      }
+    }, 280);
+
+    return () => {
+      clearTimeout(timer);
+      requestInProgressRef.current = false;
+    };
+  }, [accountNumber, selectedBank]);
 
   const handlePercentage = (percent: number) => {
     if (currentBalance <= 0) return;
@@ -117,6 +159,14 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
       setStatusMessage({
         type: 'error',
         text: 'Please enter a valid 10-digit Nigerian NUBAN account number.'
+      });
+      return;
+    }
+
+    if (verificationError || !isAccountVerified) {
+      setStatusMessage({
+        type: 'error',
+        text: verificationError || 'Please provide a valid, verified 10-digit Nigerian bank account.'
       });
       return;
     }
@@ -303,7 +353,19 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
                   <Building2 className="w-4 h-4 text-emerald-400" />
                   <h2 className="text-xs font-bold text-white">Recipient Nigerian Bank Account</h2>
                 </div>
-                <span className="text-[11px] text-slate-400 font-mono">NIBSS / NIP</span>
+                <div className="flex items-center gap-2">
+                  {onOpenVerifier && (
+                    <button
+                      type="button"
+                      onClick={onOpenVerifier}
+                      className="text-[10px] text-emerald-400 hover:text-emerald-300 font-mono font-bold bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>API Verifier Tool</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
+                  <span className="text-[11px] text-slate-400 font-mono">NIBSS / NIP</span>
+                </div>
               </div>
 
               {/* Popular Banks & Fintechs Quick Select */}
@@ -313,11 +375,11 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
                 </label>
                 <div className="grid grid-cols-5 gap-1.5 text-center">
                   {[
-                    { id: 'opay', name: 'OPay', color: '#00B875' },
-                    { id: 'palmpay', name: 'PalmPay', color: '#6B38FB' },
-                    { id: 'moniepoint', name: 'Moniepoint', color: '#003399' },
-                    { id: 'kuda', name: 'Kuda', color: '#40196D' },
-                    { id: 'gtb', name: 'GTBank', color: '#E04403' }
+                    { id: 'access', name: 'Access', code: '044', color: '#FF6200' },
+                    { id: 'gtbank', name: 'GTBank', code: '058', color: '#DD4F05' },
+                    { id: 'zenith', name: 'Zenith', code: '057', color: '#B22222' },
+                    { id: 'opay', name: 'OPay', code: '100004', color: '#00B875' },
+                    { id: 'palmpay', name: 'PalmPay', code: '100033', color: '#6B38FB' }
                   ].map(fin => {
                     const isSelected = selectedBank.id === fin.id;
                     return (
@@ -339,6 +401,7 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
                           style={{ backgroundColor: fin.color }}
                         />
                         <span className="truncate w-full">{fin.name}</span>
+                        <span className="text-[9px] font-mono text-slate-500">{fin.code}</span>
                       </button>
                     );
                   })}
@@ -464,29 +527,129 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
                     )}
                   </div>
                 )}
+
+                {/* 1-Click Demo Accounts for rapid testing */}
+                <div className="mt-2 flex items-center gap-1.5 flex-wrap text-[11px]">
+                  <span className="text-slate-400 text-[10px]">Test API:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const b = NIGERIAN_BANKS.find(x => x.code === '044');
+                      if (b) setSelectedBank(b);
+                      setAccountNumber('0000000000');
+                    }}
+                    className="text-[10px] font-mono text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 hover:bg-amber-400/20 cursor-pointer"
+                  >
+                    Access 0000000000
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const b = NIGERIAN_BANKS.find(x => x.code === '058');
+                      if (b) setSelectedBank(b);
+                      setAccountNumber('0000000001');
+                    }}
+                    className="text-[10px] font-mono text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 hover:bg-amber-400/20 cursor-pointer"
+                  >
+                    GTBank 0000000001
+                  </button>
+                </div>
               </div>
 
-              {/* Beneficiary Account Name */}
+              {/* Verification States Feedback */}
+              {/* 1. Loading Indicator */}
+              {isVerifyingAccount && (
+                <div className="p-3 bg-amber-400/10 border border-amber-400/30 rounded-xl flex items-center gap-2.5 text-xs text-amber-300 animate-in fade-in">
+                  <RefreshCw className="w-4 h-4 animate-spin text-amber-400 shrink-0" />
+                  <div>
+                    <span className="font-bold block">Verifying Bank Account with {selectedBank.name}...</span>
+                    <span className="text-[11px] text-amber-400/80 font-mono block">
+                      Querying verification API with bank code {selectedBank.code}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Success State: Displays Returned Account Name */}
+              {!isVerifyingAccount && isAccountVerified && accountName && (
+                <div className="p-3 bg-gradient-to-r from-emerald-500/15 via-[#101F1B] to-[#0D1815] border border-emerald-500/35 rounded-xl space-y-1 animate-in zoom-in-95 duration-150">
+                  <div className="flex items-center justify-between text-[10px] text-emerald-400 font-mono font-bold">
+                    <span className="flex items-center gap-1">
+                      <UserCheck className="w-3.5 h-3.5" /> Verified Account Name
+                    </span>
+                    <span>{selectedBank.code} · NUBAN OK</span>
+                  </div>
+                  <div className="text-sm font-extrabold text-white uppercase flex items-center gap-1.5">
+                    <span>{accountName}</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  </div>
+                  <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-emerald-500/20 font-mono">
+                    <span>Bank: {selectedBank.name}</span>
+                    <span>NUBAN: {accountNumber}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Failure State: Displays Returned Error Message */}
+              {!isVerifyingAccount && verificationError && (
+                <div className="p-3 bg-rose-500/15 border border-rose-500/35 rounded-xl text-xs text-rose-300 space-y-2 animate-in fade-in">
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-white block">Account Verification Failed</span>
+                      <span className="font-mono text-rose-300 text-[11px] block">{verificationError}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-1.5 border-t border-rose-500/20 text-[11px]">
+                    <span className="text-slate-400">Double check the 10-digit number or try another bank.</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cleanAcc = accountNumber.replace(/\D/g, '');
+                        if (cleanAcc.length === 10) {
+                          setIsVerifyingAccount(true);
+                          setVerificationError(null);
+                          verifyBankAccount(selectedBank.code, cleanAcc).then(res => {
+                            setIsVerifyingAccount(false);
+                            if (res.success && res.accountName) {
+                              setIsAccountVerified(true);
+                              setAccountName(res.accountName.toUpperCase());
+                            } else {
+                              setIsAccountVerified(false);
+                              setVerificationError(res.errorMessage || 'Error: Invalid Account');
+                            }
+                          });
+                        }
+                      }}
+                      className="text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Beneficiary Account Name Field */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <label className="text-xs font-medium text-slate-300">Account Beneficiary Name</label>
                   {isVerifyingAccount ? (
                     <span className="text-[11px] text-amber-400 flex items-center gap-1 font-mono">
-                      <RefreshCw className="w-3 h-3 animate-spin" /> Verifying NUBAN...
+                      <RefreshCw className="w-3 h-3 animate-spin" /> Verifying...
                     </span>
                   ) : isAccountVerified ? (
                     <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Verified
+                      <CheckCircle2 className="w-3 h-3" /> API Verified
                     </span>
                   ) : null}
                 </div>
                 <input
                   type="text"
                   required
-                  placeholder="Account holder full name"
+                  placeholder={isVerifyingAccount ? 'Resolving account holder name...' : 'Account holder full name'}
                   value={accountName}
                   onChange={e => setAccountName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 uppercase"
+                  className="w-full px-3.5 py-2.5 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 uppercase tracking-wide"
                 />
               </div>
             </div>

@@ -40,6 +40,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
     { tab: 'trade', label: 'Trading Terminal (Candle Chart)', icon: TrendingUp },
     { tab: 'community', label: 'Traders Community & Setups', icon: Users },
     { tab: 'withdraw', label: 'Withdraw Funds (NGN Bank)', icon: ArrowUpToLine },
+    { tab: 'verify_bank', label: 'Bank Account Verifier (API)', icon: ShieldCheck },
     { tab: 'wallet', label: 'Funds Wallet & Custody', icon: Wallet },
     { tab: 'history', label: 'Trade & Order History', icon: Clock },
     { tab: 'settings', label: 'Account & Security Settings', icon: Settings }

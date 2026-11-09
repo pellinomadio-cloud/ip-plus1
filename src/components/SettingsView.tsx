@@ -20,6 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../data/marketData';
 import { COUNTRIES } from '../data/countries';
 import { AdminDashboard } from './AdminDashboard';
+import { BankAccountVerification } from './BankAccountVerification';
 
 
 interface SettingsViewProps {
@@ -32,6 +33,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenAdminDashboard
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [resetNotice, setResetNotice] = useState(false);
+  const [showBankVerifierModal, setShowBankVerifierModal] = useState(false);
 
   // Admin Console States
   const [showAdminPasswordPrompt, setShowAdminPasswordPrompt] = useState(false);
@@ -166,6 +168,55 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenAdminDashboard
           </button>
         </div>
       </div>
+
+      {/* Bank Account Verification Tool Card */}
+      <div className="p-4 rounded-2xl bg-[#141B27] border border-slate-800 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <Building2 className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-white">Bank Account Verification API</h4>
+              <p className="text-[11px] text-slate-400">NIP recipient name resolver</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowBankVerifierModal(true)}
+            className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+          >
+            <span>Open Tool</span>
+            <ExternalLink className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      {/* Bank Verifier Modal */}
+      {showBankVerifierModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#111722] border border-slate-800 w-full max-w-md rounded-3xl p-5 shadow-2xl text-white space-y-4 relative max-h-[90vh] overflow-y-auto no-scrollbar">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h3 className="font-bold text-sm text-white">Bank Account Verification</h3>
+                  <p className="text-[11px] text-slate-400">Live API Name Resolution</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBankVerifierModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <BankAccountVerification />
+          </div>
+        </div>
+      )}
 
       {/* Account Controls */}
       <div className="p-4 rounded-2xl bg-[#141B27] border border-slate-800 space-y-2.5">
