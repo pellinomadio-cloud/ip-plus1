@@ -147,7 +147,7 @@ export interface DepositRequest {
   approvedAt?: string;
 }
 
-export type NavTab = 'home' | 'trade' | 'wallet' | 'funds_wallet' | 'withdraw' | 'community' | 'history' | 'settings' | 'admin_dashboard';
+export type NavTab = 'home' | 'trade' | 'wallet' | 'funds_wallet' | 'withdraw' | 'community' | 'history' | 'settings' | 'admin_dashboard' | 'upgrade';
 
 export interface PriceAlert {
   id: string;

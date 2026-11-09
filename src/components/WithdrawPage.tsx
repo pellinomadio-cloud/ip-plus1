@@ -23,15 +23,21 @@ import {
 interface WithdrawPageProps {
   onBack: () => void;
   onOpenDeposit: () => void;
+  onOpenUpgrade?: () => void;
 }
 
-export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposit }) => {
+export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposit, onOpenUpgrade }) => {
   const { currentUser, withdrawFunds, transactions, staffAccount } = useAuth();
 
   // Amount & submission states
   const [amount, setAmount] = useState<string>('');
   const [statusMessage, setStatusMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [latestPlacedWithdrawal, setLatestPlacedWithdrawal] = useState<{
+    amount: number;
+    bankName: string;
+    ngnAmount: number;
+  } | null>(null);
 
   // Nigerian Bank states
   const [selectedBank, setSelectedBank] = useState<NigerianBank>(NIGERIAN_BANKS[0]);
@@ -142,6 +148,11 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
       setIsSubmitting(false);
       if (res.success) {
         setStatusMessage({ type: 'success', text: res.message });
+        setLatestPlacedWithdrawal({
+          amount: numAmount,
+          bankName: selectedBank.name,
+          ngnAmount: estimatedNgn
+        });
         setAmount('');
         setAccountNumber('');
       } else {
@@ -216,15 +227,52 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
               <span className="block">{statusMessage.text}</span>
               {statusMessage.type === 'success' && (
                 <span className="text-[11px] text-emerald-400/90 block">
-                  Your Naira payout has been queued via NIBSS Instant Payment (NIP).
+                  Your withdrawal has been registered and placed on pending status.
                 </span>
               )}
             </div>
           </div>
         )}
 
+        {/* Pending Withdrawal Upgrade Action Card */}
+        {(latestPlacedWithdrawal || transactions.some(t => t.type === 'withdrawal' && t.status === 'pending')) && (
+          <div className="p-4 bg-gradient-to-r from-amber-500/20 via-[#182030] to-[#121824] border-2 border-amber-400 rounded-2xl shadow-xl shadow-amber-400/10 space-y-3.5 animate-in fade-in">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-400/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                <Clock className="w-5 h-5 animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-bold text-white">Withdrawal Status: Pending Verification</h4>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-amber-400 text-slate-950">
+                    Pending
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {latestPlacedWithdrawal
+                    ? `Your withdrawal of $${latestPlacedWithdrawal.amount.toFixed(2)} (₦${latestPlacedWithdrawal.ngnAmount.toLocaleString()} NGN) to ${latestPlacedWithdrawal.bankName} is pending.`
+                    : 'You have a withdrawal request on pending hold.'}
+                  {' '}To complete this withdrawal and release your funds, upgrade your account to <strong className="text-amber-400">Level 2</strong>.
+                </p>
+              </div>
+            </div>
+
+            {onOpenUpgrade && (
+              <button
+                type="button"
+                onClick={onOpenUpgrade}
+                className="w-full py-3 px-4 bg-[#F5BA31] hover:bg-[#ffc842] active:scale-[0.99] text-slate-950 font-extrabold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-400/25 cursor-pointer transition-all"
+              >
+                <ShieldCheck className="w-4 h-4 fill-slate-950" />
+                <span>Upgrade Account to Level 2 to Complete This Withdrawal</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Zero Balance State */}
-        {currentBalance <= 0 && !statusMessage ? (
+        {currentBalance <= 0 && !statusMessage && !latestPlacedWithdrawal && !transactions.some(t => t.type === 'withdrawal' && t.status === 'pending') ? (
           <div className="p-5 rounded-2xl bg-[#111722] border border-slate-800 space-y-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
@@ -376,9 +424,14 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
 
               {/* 10-Digit NUBAN Account Number */}
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  10-Digit Account Number (NUBAN)
-                </label>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-xs font-medium text-slate-300">
+                    10-Digit Account Number (NUBAN)
+                  </label>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    {accountNumber.length}/10 digits
+                  </span>
+                </div>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -389,6 +442,28 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
                   onChange={e => setAccountNumber(e.target.value.replace(/\D/g, ''))}
                   className="w-full px-3.5 py-2.5 bg-[#0B0F17] border border-slate-800 rounded-xl text-sm font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 tracking-wider"
                 />
+
+                {/* Automatically show resolved bank name prominently once account number is input */}
+                {accountNumber.length > 0 && (
+                  <div className="mt-2 p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs animate-in fade-in">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-mono">Bank Name</span>
+                        <span className="font-bold text-white">{selectedBank.name}</span>
+                      </div>
+                    </div>
+                    {accountNumber.length === 10 ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold font-mono flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Validated
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-amber-400/80 font-mono">
+                        Enter 10 digits
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Beneficiary Account Name */}
@@ -521,11 +596,32 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
                 <div key={tx.id} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between text-xs">
                   <div>
                     <span className="font-bold text-white block">{tx.title}</span>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      {tx.destinationDetails?.accountNumber
-                        ? `${tx.destinationDetails.bankName} · ${tx.destinationDetails.accountNumber}`
-                        : new Date(tx.timestamp).toLocaleDateString()}
-                    </span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {tx.destinationDetails?.accountNumber
+                          ? `${tx.destinationDetails.bankName} · ${tx.destinationDetails.accountNumber}`
+                          : new Date(tx.timestamp).toLocaleDateString()}
+                      </span>
+                      {tx.status === 'pending' ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 font-mono">
+                          Pending Level 2
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono">
+                          Completed
+                        </span>
+                      )}
+                    </div>
+                    {tx.status === 'pending' && onOpenUpgrade && (
+                      <button
+                        type="button"
+                        onClick={onOpenUpgrade}
+                        className="mt-1 text-[11px] font-bold text-amber-400 hover:text-amber-300 underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Upgrade Account to Level 2 to Complete</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                   <div className="text-right font-mono tabular-nums">
                     <span className="font-bold text-white block">-{formatCurrency(tx.amount)}</span>

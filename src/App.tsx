@@ -16,6 +16,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { BottomNav } from './components/BottomNav';
 import { FundsWalletPage } from './components/FundsWalletPage';
 import { WithdrawPage } from './components/WithdrawPage';
+import { UpgradeAccountPage } from './components/UpgradeAccountPage';
 import { CommunityPage } from './components/CommunityPage';
 import { TradeModal } from './components/modals/TradeModal';
 import { TradeResultModal } from './components/modals/TradeResultModal';
@@ -166,6 +167,14 @@ function AppContent() {
           <WithdrawPage
             onBack={() => setActiveTab('home')}
             onOpenDeposit={() => setActiveTab('funds_wallet')}
+            onOpenUpgrade={() => setActiveTab('upgrade')}
+          />
+        )}
+
+        {activeTab === 'upgrade' && (
+          <UpgradeAccountPage
+            onBack={() => setActiveTab('withdraw')}
+            onSuccessReturn={() => setActiveTab('withdraw')}
           />
         )}
 
@@ -221,7 +230,7 @@ function AppContent() {
         {/* Fixed Bottom Navigation Bar */}
         <BottomNav
           activeTab={
-            activeTab === 'funds_wallet' || activeTab === 'withdraw'
+            activeTab === 'funds_wallet' || activeTab === 'withdraw' || activeTab === 'upgrade'
               ? 'wallet'
               : activeTab === 'community'
               ? 'home'

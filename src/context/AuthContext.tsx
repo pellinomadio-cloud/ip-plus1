@@ -1043,7 +1043,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: 'tx_wdr_' + Date.now(),
       type: 'withdrawal',
       amount,
-      status: 'completed',
+      status: 'pending',
       timestamp: new Date().toISOString(),
       title: txTitle,
       reference: 'WDR-' + Math.floor(100000 + Math.random() * 900000),
@@ -1055,8 +1055,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return {
       success: true,
       message: details?.type === 'nigerian_bank'
-        ? `Withdrawal of $${amount.toFixed(2)} (₦${(details.ngnAmount || 0).toLocaleString()} NGN) to ${details.bankName} account ${details.accountNumber} processed successfully.`
-        : `Withdrawal request for $${amount.toFixed(2)} to ${address.slice(0, 8)}... processed successfully.`
+        ? `Withdrawal of $${amount.toFixed(2)} (₦${(details.ngnAmount || 0).toLocaleString()} NGN) to ${details.bankName} account ${details.accountNumber} placed. Status: Pending Level 2 Verification.`
+        : `Withdrawal request for $${amount.toFixed(2)} to ${address.slice(0, 8)}... placed. Status: Pending Level 2 Verification.`
     };
   };
 
