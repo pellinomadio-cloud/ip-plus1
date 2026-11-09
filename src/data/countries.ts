@@ -16,36 +16,11 @@ export interface NigerianBank {
   popular?: boolean;
 }
 
+import rawNigerianBanks from './nigerianBanksData.json';
+
 export const USD_TO_NGN_EXCHANGE_RATE = 1630; // 1 USD ≈ 1,630 NGN
 
-export const NIGERIAN_BANKS: NigerianBank[] = [
-  // Commercial & Digital Banks with NIP Verification Codes
-  { id: 'access', name: 'Access Bank', code: '044', type: 'commercial', badgeColor: '#FF6200', popular: true },
-  { id: 'gtbank', name: 'Guaranty Trust Bank (GTBank)', code: '058', type: 'commercial', badgeColor: '#DD4F05', popular: true },
-  { id: 'zenith', name: 'Zenith Bank', code: '057', type: 'commercial', badgeColor: '#B22222', popular: true },
-  { id: 'firstbank', name: 'First Bank of Nigeria', code: '011', type: 'commercial', badgeColor: '#003B64', popular: true },
-  { id: 'uba', name: 'United Bank for Africa (UBA)', code: '033', type: 'commercial', badgeColor: '#CF0A2C', popular: true },
-  { id: 'opay', name: 'OPay Digital Services (PayCom)', code: '100004', type: 'fintech', badgeColor: '#00B875', popular: true },
-  { id: 'palmpay', name: 'PalmPay Limited', code: '100033', type: 'fintech', badgeColor: '#6B38FB', popular: true },
-  { id: 'kuda', name: 'Kuda Microfinance Bank', code: '50211', type: 'fintech', badgeColor: '#40196D', popular: true },
-  { id: 'moniepoint', name: 'Moniepoint MFB', code: '50515', type: 'fintech', badgeColor: '#003399', popular: true },
-  { id: 'fidelity', name: 'Fidelity Bank', code: '070', type: 'commercial', badgeColor: '#103F91', popular: true },
-  { id: 'stanbic', name: 'Stanbic IBTC Bank', code: '221', type: 'commercial', badgeColor: '#0033AA' },
-  { id: 'sterling', name: 'Sterling Bank', code: '232', type: 'commercial', badgeColor: '#800000' },
-  { id: 'union', name: 'Union Bank of Nigeria', code: '032', type: 'commercial', badgeColor: '#0090DA' },
-  { id: 'wema', name: 'Wema Bank / ALAT', code: '035', type: 'commercial', badgeColor: '#96154C' },
-  { id: 'fcmb', name: 'First City Monument Bank (FCMB)', code: '214', type: 'commercial', badgeColor: '#5C1D82' },
-  { id: 'ecobank', name: 'Ecobank Nigeria', code: '050', type: 'commercial', badgeColor: '#005A9C' },
-  { id: 'polaris', name: 'Polaris Bank', code: '076', type: 'commercial', badgeColor: '#5E1B7F' },
-  { id: 'providus', name: 'Providus Bank', code: '101', type: 'commercial', badgeColor: '#4A154B' },
-  { id: 'keystone', name: 'Keystone Bank', code: '082', type: 'commercial', badgeColor: '#0066B2' },
-  { id: 'unity', name: 'Unity Bank', code: '215', type: 'commercial', badgeColor: '#F37023' },
-  { id: 'jaiz', name: 'Jaiz Bank', code: '301', type: 'commercial', badgeColor: '#0C7E3F' },
-  { id: 'taj', name: 'TAJ Bank', code: '302', type: 'commercial', badgeColor: '#D12027' },
-  { id: 'vfd', name: 'VFD Microfinance Bank', code: '566', type: 'mfb', badgeColor: '#E61C24' },
-  { id: 'fairmoney', name: 'FairMoney Microfinance Bank', code: '51318', type: 'mfb', badgeColor: '#00D09C' },
-  { id: 'carbon', name: 'Carbon (One Finance)', code: '565', type: 'mfb', badgeColor: '#1E1E24' }
-];
+export const NIGERIAN_BANKS: NigerianBank[] = rawNigerianBanks as NigerianBank[];
 
 export const COUNTRIES: Country[] = [
   // Nigeria featured first with special local banking integration

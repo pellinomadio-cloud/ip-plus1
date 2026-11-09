@@ -1,0 +1,2537 @@
+[
+  {
+    "id": "bank_100004",
+    "name": "OPay",
+    "code": "100004",
+    "type": "fintech",
+    "badgeColor": "#00B875",
+    "popular": true
+  },
+  {
+    "id": "bank_100033",
+    "name": "PalmPay",
+    "code": "100033",
+    "type": "fintech",
+    "badgeColor": "#6B38FB",
+    "popular": true
+  },
+  {
+    "id": "bank_090405",
+    "name": "Moniepoint Microfinance Bank",
+    "code": "090405",
+    "type": "mfb",
+    "badgeColor": "#003399",
+    "popular": true
+  },
+  {
+    "id": "bank_090267",
+    "name": "Kuda",
+    "code": "090267",
+    "type": "fintech",
+    "badgeColor": "#40196D",
+    "popular": true
+  },
+  {
+    "id": "bank_044",
+    "name": "Access Bank",
+    "code": "044",
+    "type": "commercial",
+    "badgeColor": "#FF6200",
+    "popular": true
+  },
+  {
+    "id": "bank_058",
+    "name": "Guaranty Trust Bank",
+    "code": "058",
+    "type": "commercial",
+    "badgeColor": "#DD4F05",
+    "popular": true
+  },
+  {
+    "id": "bank_057",
+    "name": "Zenith bank PLC",
+    "code": "057",
+    "type": "commercial",
+    "badgeColor": "#B22222",
+    "popular": true
+  },
+  {
+    "id": "bank_011",
+    "name": "First Bank PLC",
+    "code": "011",
+    "type": "commercial",
+    "badgeColor": "#003B64",
+    "popular": true
+  },
+  {
+    "id": "bank_033",
+    "name": "United Bank for Africa",
+    "code": "033",
+    "type": "commercial",
+    "badgeColor": "#CF0A2C",
+    "popular": true
+  },
+  {
+    "id": "bank_035",
+    "name": "Wema Bank PLC",
+    "code": "035",
+    "type": "commercial",
+    "badgeColor": "#96154C",
+    "popular": true
+  },
+  {
+    "id": "bank_070",
+    "name": "Fidelity Bank",
+    "code": "070",
+    "type": "commercial",
+    "badgeColor": "#103F91",
+    "popular": true
+  },
+  {
+    "id": "bank_050",
+    "name": "EcoBank PLC",
+    "code": "050",
+    "type": "commercial",
+    "badgeColor": "#005A9C",
+    "popular": true
+  },
+  {
+    "id": "bank_032",
+    "name": "Union Bank PLC",
+    "code": "032",
+    "type": "commercial",
+    "badgeColor": "#0090DA",
+    "popular": true
+  },
+  {
+    "id": "bank_076",
+    "name": "Polaris bank",
+    "code": "076",
+    "type": "commercial",
+    "badgeColor": "#5E1B7F",
+    "popular": true
+  },
+  {
+    "id": "bank_082",
+    "name": "Keystone Bank",
+    "code": "082",
+    "type": "commercial",
+    "badgeColor": "#0066B2",
+    "popular": true
+  },
+  {
+    "id": "bank_090110",
+    "name": "VFD Micro Finance Bank",
+    "code": "090110",
+    "type": "mfb",
+    "badgeColor": "#E61C24",
+    "popular": true
+  },
+  {
+    "id": "bank_000019",
+    "name": "Enterprise Bank",
+    "code": "000019",
+    "type": "commercial",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_000025",
+    "name": "Titan Trust Bank",
+    "code": "000025",
+    "type": "commercial",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_000027",
+    "name": "Globus Bank",
+    "code": "000027",
+    "type": "commercial",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_000028",
+    "name": "Central Bank Of Nigeria",
+    "code": "000028",
+    "type": "commercial",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_000029",
+    "name": "Lotus Bank",
+    "code": "000029",
+    "type": "commercial",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_000030",
+    "name": "Parallex Bank",
+    "code": "000030",
+    "type": "commercial",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_000031",
+    "name": "PremiumTrust Bank",
+    "code": "000031",
+    "type": "commercial",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_000033",
+    "name": "ENaira",
+    "code": "000033",
+    "type": "commercial",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_000034",
+    "name": "SIGNATURE BANK",
+    "code": "000034",
+    "type": "commercial",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_000036",
+    "name": "Optimus Bank",
+    "code": "000036",
+    "type": "commercial",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_000037",
+    "name": "ALTERNATIVE BANK LIMITED",
+    "code": "000037",
+    "type": "commercial",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_023",
+    "name": "Citi Bank",
+    "code": "023",
+    "type": "commercial",
+    "badgeColor": "#E04403",
+    "popular": true
+  },
+  {
+    "id": "bank_050001",
+    "name": "County Finance Ltd",
+    "code": "050001",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_050002",
+    "name": "Fewchore Finance Company Limited",
+    "code": "050002",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_050003",
+    "name": "Sagegrey Finance Limited",
+    "code": "050003",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_050004",
+    "name": "Newedge Finance Ltd",
+    "code": "050004",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_050005",
+    "name": "Aaa Finance",
+    "code": "050005",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_050006",
+    "name": "Branch International Finance Company Limited",
+    "code": "050006",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_050007",
+    "name": "Tekla Finance Ltd",
+    "code": "050007",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_050008",
+    "name": "SIMPLE FINANCE LIMITED",
+    "code": "050008",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_050009",
+    "name": "FAST CREDIT",
+    "code": "050009",
+    "type": "commercial",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_050010",
+    "name": "FUNDQUEST FINANCIAL SERVICES LTD",
+    "code": "050010",
+    "type": "commercial",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_050012",
+    "name": "Enco Finance",
+    "code": "050012",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_050013",
+    "name": "Dignity Finance",
+    "code": "050013",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_050014",
+    "name": "TRINITY FINANCIAL SERVICES LIMITED",
+    "code": "050014",
+    "type": "commercial",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_050019",
+    "name": "ZEDVANCE FINANCE LIMITED",
+    "code": "050019",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_050020",
+    "name": "VALE FINANCE LIMITED",
+    "code": "050020",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_060001",
+    "name": "Coronation Merchant Bank",
+    "code": "060001",
+    "type": "commercial",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_060002",
+    "name": "FBNQUEST Merchant Bank",
+    "code": "060002",
+    "type": "commercial",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_060003",
+    "name": "Nova Merchant Bank",
+    "code": "060003",
+    "type": "commercial",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_060004",
+    "name": "Greenwich Merchant Bank",
+    "code": "060004",
+    "type": "commercial",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_068",
+    "name": "Standard Chaterted bank PLC",
+    "code": "068",
+    "type": "commercial",
+    "badgeColor": "#B22222",
+    "popular": true
+  },
+  {
+    "id": "bank_070001",
+    "name": "NPF MicroFinance Bank",
+    "code": "070001",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_070002",
+    "name": "Fortis Microfinance Bank",
+    "code": "070002",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_070006",
+    "name": "Covenant Microfinance Bank",
+    "code": "070006",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_070007",
+    "name": "Omoluabi savings and loans",
+    "code": "070007",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_070008",
+    "name": "Page Financials",
+    "code": "070008",
+    "type": "commercial",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_070009",
+    "name": "Gateway Mortgage Bank",
+    "code": "070009",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_070010",
+    "name": "Abbey Mortgage Bank",
+    "code": "070010",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_070011",
+    "name": "Refuge Mortgage Bank",
+    "code": "070011",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_070012",
+    "name": "Lagos Building Investment Company",
+    "code": "070012",
+    "type": "commercial",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_070013",
+    "name": "Platinum Mortgage Bank",
+    "code": "070013",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_070014",
+    "name": "First Generation Mortgage Bank",
+    "code": "070014",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_070015",
+    "name": "Brent Mortgage Bank",
+    "code": "070015",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_070016",
+    "name": "Infinity Trust Mortgage Bank",
+    "code": "070016",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_070017",
+    "name": "Haggai Mortgage Bank Limited",
+    "code": "070017",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_070019",
+    "name": "Mayfresh Mortgage Bank",
+    "code": "070019",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_070021",
+    "name": "Coop Mortgage Bank",
+    "code": "070021",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_070022",
+    "name": "Stb Mortgage Bank",
+    "code": "070022",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_070023",
+    "name": "Delta Trust Mortgage Bank",
+    "code": "070023",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_070024",
+    "name": "Homebase Mortgage",
+    "code": "070024",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_070025",
+    "name": "Akwa Savings & Loans Limited",
+    "code": "070025",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_070026",
+    "name": "Fha Mortgage Bank Ltd",
+    "code": "070026",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_080002",
+    "name": "Tajwallet",
+    "code": "080002",
+    "type": "fintech",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090001",
+    "name": "ASOSavings & Loans",
+    "code": "090001",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090003",
+    "name": "Jubilee-Life Mortgage  Bank",
+    "code": "090003",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090004",
+    "name": "Parralex Microfinance bank",
+    "code": "090004",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090005",
+    "name": "Trustbond Mortgage Bank",
+    "code": "090005",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090006",
+    "name": "SafeTrust",
+    "code": "090006",
+    "type": "commercial",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090097",
+    "name": "Ekondo MFB",
+    "code": "090097",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090107",
+    "name": "FIRSTTRUST MORTGAGE BANK",
+    "code": "090107",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090108",
+    "name": "New Prudential Bank",
+    "code": "090108",
+    "type": "commercial",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090112",
+    "name": "Seed Capital Microfinance Bank",
+    "code": "090112",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090113",
+    "name": "Microvis Microfinance Bank",
+    "code": "090113",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090114",
+    "name": "Empire trust MFB",
+    "code": "090114",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090115",
+    "name": "IBANK Microfinance Bank",
+    "code": "090115",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090116",
+    "name": "AMML MFB",
+    "code": "090116",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090117",
+    "name": "Boctrust Microfinance Bank",
+    "code": "090117",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090118",
+    "name": "IBILE Microfinance Bank",
+    "code": "090118",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090119",
+    "name": "Ohafia Microfinance Bank",
+    "code": "090119",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090120",
+    "name": "Wetland Microfinance Bank",
+    "code": "090120",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090121",
+    "name": "Hasal Microfinance Bank",
+    "code": "090121",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090122",
+    "name": "Gowans Microfinance Bank",
+    "code": "090122",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090123",
+    "name": "Verite Microfinance Bank",
+    "code": "090123",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090124",
+    "name": "Xslnce Microfinance Bank",
+    "code": "090124",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090125",
+    "name": "Regent Microfinance Bank",
+    "code": "090125",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090126",
+    "name": "Fidfund Microfinance Bank",
+    "code": "090126",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090127",
+    "name": "BC Kash Microfinance Bank",
+    "code": "090127",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090128",
+    "name": "Ndiorah Microfinance Bank",
+    "code": "090128",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090129",
+    "name": "Money Trust Microfinance Bank",
+    "code": "090129",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090130",
+    "name": "Consumer Microfinance Bank",
+    "code": "090130",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090131",
+    "name": "Allworkers Microfinance Bank",
+    "code": "090131",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090132",
+    "name": "Richway Microfinance Bank",
+    "code": "090132",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090133",
+    "name": "AL-Barakah Microfinance Bank",
+    "code": "090133",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090134",
+    "name": "Accion Microfinance Bank",
+    "code": "090134",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090135",
+    "name": "Personal Trust Microfinance Bank",
+    "code": "090135",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090136",
+    "name": "Baobab Microfinance Bank",
+    "code": "090136",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090137",
+    "name": "PecanTrust Microfinance Bank",
+    "code": "090137",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090138",
+    "name": "Royal Exchange Microfinance Bank",
+    "code": "090138",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090139",
+    "name": "Visa Microfinance Bank",
+    "code": "090139",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090140",
+    "name": "Sagamu Microfinance Bank",
+    "code": "090140",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090141",
+    "name": "Chikum Microfinance Bank",
+    "code": "090141",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090142",
+    "name": "Yes Microfinance Bank",
+    "code": "090142",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090143",
+    "name": "Apeks Microfinance Bank",
+    "code": "090143",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090144",
+    "name": "CIT Microfinance Bank",
+    "code": "090144",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090145",
+    "name": "Fullrange Microfinance Bank",
+    "code": "090145",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090146",
+    "name": "Trident Microfinance Bank",
+    "code": "090146",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090147",
+    "name": "Hackman Microfinance Bank",
+    "code": "090147",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090148",
+    "name": "Bowen Microfinance Bank",
+    "code": "090148",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090149",
+    "name": "IRL Microfinance Bank",
+    "code": "090149",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090150",
+    "name": "Virtue Microfinance Bank",
+    "code": "090150",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090151",
+    "name": "Mutual Trust Microfinance Bank",
+    "code": "090151",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090152",
+    "name": "Nagarta Microfinance Bank",
+    "code": "090152",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090153",
+    "name": "FFS Microfinance Bank",
+    "code": "090153",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090154",
+    "name": "CEMCS Microfinance Bank",
+    "code": "090154",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090155",
+    "name": "La  Fayette Microfinance Bank",
+    "code": "090155",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090156",
+    "name": "e-Barcs Microfinance Bank",
+    "code": "090156",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090157",
+    "name": "Infinity Microfinance Bank",
+    "code": "090157",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090158",
+    "name": "Futo Microfinance Bank",
+    "code": "090158",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090159",
+    "name": "Credit Afrique Microfinance Bank",
+    "code": "090159",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090160",
+    "name": "Addosser Microfinance Bank",
+    "code": "090160",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090161",
+    "name": "Okpoga Microfinance Bank",
+    "code": "090161",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090162",
+    "name": "Stanford Microfinance Bak",
+    "code": "090162",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090163",
+    "name": "First Multiple Microfinance Bank",
+    "code": "090163",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090164",
+    "name": "First Royal Microfinance Bank",
+    "code": "090164",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090165",
+    "name": "Petra Microfinance Bank",
+    "code": "090165",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090166",
+    "name": "Eso-E Microfinance Bank",
+    "code": "090166",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090167",
+    "name": "Daylight Microfinance Bank",
+    "code": "090167",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090168",
+    "name": "Gashua Microfinance Bank",
+    "code": "090168",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090169",
+    "name": "Alpha Kapital Microfinance Bank",
+    "code": "090169",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090170",
+    "name": "Rahama Microfinance Bank",
+    "code": "090170",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090171",
+    "name": "Mainstreet Microfinance Bank",
+    "code": "090171",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090172",
+    "name": "Astrapolaris Microfinance Bank",
+    "code": "090172",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090173",
+    "name": "Reliance Microfinance Bank",
+    "code": "090173",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090174",
+    "name": "Malachy Microfinance Bank",
+    "code": "090174",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090175",
+    "name": "Rubies Microfinance Bank",
+    "code": "090175",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090176",
+    "name": "Bosak Microfinance Bank",
+    "code": "090176",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090177",
+    "name": "Lapo Microfinance Bank",
+    "code": "090177",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090178",
+    "name": "GreenBank Microfinance Bank",
+    "code": "090178",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090179",
+    "name": "FAST Microfinance Bank",
+    "code": "090179",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090180",
+    "name": "AMJU Unique Microfinance Bank",
+    "code": "090180",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090181",
+    "name": "Balogun Fulani  Microfinance Bank",
+    "code": "090181",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090182",
+    "name": "Standard Microfinance Bank",
+    "code": "090182",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090186",
+    "name": "Girei Microfinance Bank",
+    "code": "090186",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090188",
+    "name": "Baines Credit Microfinance Bank",
+    "code": "090188",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090189",
+    "name": "Esan Microfinance Bank",
+    "code": "090189",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090190",
+    "name": "Mutual Benefits Microfinance Bank",
+    "code": "090190",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090191",
+    "name": "KCMB Microfinance Bank",
+    "code": "090191",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090192",
+    "name": "Midland Microfinance Bank",
+    "code": "090192",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090193",
+    "name": "Unical Microfinance Bank",
+    "code": "090193",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090194",
+    "name": "NIRSAL Microfinance Bank",
+    "code": "090194",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090195",
+    "name": "Grooming Microfinance Bank",
+    "code": "090195",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090196",
+    "name": "Pennywise Microfinance Bank",
+    "code": "090196",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090197",
+    "name": "ABU Microfinance Bank",
+    "code": "090197",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090198",
+    "name": "RenMoney Microfinance Bank",
+    "code": "090198",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090201",
+    "name": "Xpress Payments",
+    "code": "090201",
+    "type": "fintech",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090202",
+    "name": "Accelerex Network",
+    "code": "090202",
+    "type": "fintech",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090205",
+    "name": "New Dawn Microfinance Bank",
+    "code": "090205",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090211",
+    "name": "Itex Integrated Services Limited",
+    "code": "090211",
+    "type": "commercial",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090251",
+    "name": "UNN MFB",
+    "code": "090251",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090252",
+    "name": "Yobe Microfinance Bank",
+    "code": "090252",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090254",
+    "name": "Coalcamp Microfinance Bank",
+    "code": "090254",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090258",
+    "name": "Imo State Microfinance Bank",
+    "code": "090258",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090259",
+    "name": "Alekun Microfinance Bank",
+    "code": "090259",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090260",
+    "name": "Above Only Microfinance Bank",
+    "code": "090260",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090261",
+    "name": "Quickfund Microfinance Bank",
+    "code": "090261",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090262",
+    "name": "Stellas Microfinance Bank",
+    "code": "090262",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090263",
+    "name": "Navy Microfinance Bank",
+    "code": "090263",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090264",
+    "name": "Auchi Microfinance Bank",
+    "code": "090264",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090265",
+    "name": "Lovonus Microfinance Bank",
+    "code": "090265",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090266",
+    "name": "Uniben Microfinance Bank",
+    "code": "090266",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090268",
+    "name": "Adeyemi College Staff Microfinance Bank",
+    "code": "090268",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090269",
+    "name": "Greenville Microfinance Bank",
+    "code": "090269",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090270",
+    "name": "AB Microfinance Bank",
+    "code": "090270",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090271",
+    "name": "Lavender Microfinance Bank",
+    "code": "090271",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090272",
+    "name": "Olabisi Onabanjo University Microfinance Bank",
+    "code": "090272",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090273",
+    "name": "Emeralds Microfinance Bank",
+    "code": "090273",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090274",
+    "name": "Prestige Microfinance Bank",
+    "code": "090274",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090275",
+    "name": "BANKIT MFB",
+    "code": "090275",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090276",
+    "name": "Trustfund Microfinance Bank",
+    "code": "090276",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090277",
+    "name": "Al-Hayat Microfinance Bank",
+    "code": "090277",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090278",
+    "name": "Glory Microfinance Bank",
+    "code": "090278",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090279",
+    "name": "Ikire Microfinance Bank",
+    "code": "090279",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090280",
+    "name": "Megapraise Microfinance Bank",
+    "code": "090280",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090281",
+    "name": "Mint-Finex MICROFINANCE BANK",
+    "code": "090281",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090282",
+    "name": "Arise Microfinance Bank",
+    "code": "090282",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090283",
+    "name": "Thrive Microfinance Bank",
+    "code": "090283",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090285",
+    "name": "First Option Microfinance Bank",
+    "code": "090285",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090286",
+    "name": "Safe Haven MFB",
+    "code": "090286",
+    "type": "mfb",
+    "badgeColor": "#003399",
+    "popular": true
+  },
+  {
+    "id": "bank_090287",
+    "name": "Assets Matrix Microfinance Bank",
+    "code": "090287",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090289",
+    "name": "Pillar Microfinance Bank",
+    "code": "090289",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090290",
+    "name": "Fct Microfinance Bank",
+    "code": "090290",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090291",
+    "name": "Halacredit Microfinance Bank",
+    "code": "090291",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090292",
+    "name": "Afekhafe Microfinance Bank",
+    "code": "090292",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090293",
+    "name": "Brethren Microfinance Bank",
+    "code": "090293",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090294",
+    "name": "Eagle Flight Microfinance Bank",
+    "code": "090294",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090295",
+    "name": "Omiye Microfinance Bank",
+    "code": "090295",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090296",
+    "name": "Polyuwanna Microfinance Bank",
+    "code": "090296",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090297",
+    "name": "Alert Microfinance Bank",
+    "code": "090297",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090298",
+    "name": "Federalpoly Nasarawamfb",
+    "code": "090298",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090299",
+    "name": "Kontagora Microfinance Bank",
+    "code": "090299",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090302",
+    "name": "Sunbeam Microfinance Bank",
+    "code": "090302",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090303",
+    "name": "Purplemoney Microfinance Bank",
+    "code": "090303",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090304",
+    "name": "Evangel Microfinance Bank",
+    "code": "090304",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090305",
+    "name": "Sulsap Microfinance Bank",
+    "code": "090305",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090307",
+    "name": "Aramoko Microfinance Bank",
+    "code": "090307",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090308",
+    "name": "Brightway Microfinance Bank",
+    "code": "090308",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090310",
+    "name": "Edfin Microfinance Bank",
+    "code": "090310",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090315",
+    "name": "U And C Microfinance Bank",
+    "code": "090315",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090316",
+    "name": "Bayero Microfinance Bank",
+    "code": "090316",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090317",
+    "name": "PatrickGold Microfinance Bank",
+    "code": "090317",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090318",
+    "name": "Federal University Dutse  Microfinance Bank",
+    "code": "090318",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090319",
+    "name": "Bonghe Microfinance Bank",
+    "code": "090319",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090320",
+    "name": "Kadpoly Microfinance Bank",
+    "code": "090320",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090321",
+    "name": "Mayfair  Microfinance Bank",
+    "code": "090321",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090322",
+    "name": "Rephidim Microfinance Bank",
+    "code": "090322",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090323",
+    "name": "Mainland Microfinance Bank",
+    "code": "090323",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090324",
+    "name": "Ikenne Microfinance Bank",
+    "code": "090324",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090325",
+    "name": "Sparkle",
+    "code": "090325",
+    "type": "fintech",
+    "badgeColor": "#0090DA",
+    "popular": true
+  },
+  {
+    "id": "bank_090326",
+    "name": "Balogun Gambari Microfinance Bank",
+    "code": "090326",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090327",
+    "name": "Trust Microfinance Bank",
+    "code": "090327",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090328",
+    "name": "Eyowo MFB",
+    "code": "090328",
+    "type": "fintech",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090329",
+    "name": "Neptune Microfinance Bank",
+    "code": "090329",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090330",
+    "name": "Fame Microfinance Bank",
+    "code": "090330",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090331",
+    "name": "Unaab Microfinance Bank",
+    "code": "090331",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090332",
+    "name": "Evergreen Microfinance Bank",
+    "code": "090332",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090333",
+    "name": "Oche Microfinance Bank",
+    "code": "090333",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090335",
+    "name": "Grant MF Bank",
+    "code": "090335",
+    "type": "commercial",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090336",
+    "name": "Bipc Microfinance Bank",
+    "code": "090336",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090337",
+    "name": "Iyeru Okin Microfinance Bank Ltd",
+    "code": "090337",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090338",
+    "name": "Uniuyo Microfinance Bank",
+    "code": "090338",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090340",
+    "name": "Stockcorp  Microfinance Bank",
+    "code": "090340",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090341",
+    "name": "Unilorin Microfinance Bank",
+    "code": "090341",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090343",
+    "name": "Citizen Trust Microfinance Bank Ltd",
+    "code": "090343",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090345",
+    "name": "Oau Microfinance Bank Ltd",
+    "code": "090345",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090349",
+    "name": "Nasarawa Microfinance Bank",
+    "code": "090349",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090350",
+    "name": "Illorin Microfinance Bank",
+    "code": "090350",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090352",
+    "name": "Jessefield Microfinance Bank",
+    "code": "090352",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090353",
+    "name": "Isuofia Microfinance Bank",
+    "code": "090353",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090360",
+    "name": "Cashconnect   Microfinance Bank",
+    "code": "090360",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090362",
+    "name": "Molusi Microfinance Bank",
+    "code": "090362",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090363",
+    "name": "Headway Microfinance Bank",
+    "code": "090363",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090364",
+    "name": "Nuture Microfinance Bank",
+    "code": "090364",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090365",
+    "name": "Corestep Microfinance Bank",
+    "code": "090365",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090366",
+    "name": "Firmus MFB",
+    "code": "090366",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090369",
+    "name": "Seedvest Microfinance Bank",
+    "code": "090369",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090370",
+    "name": "Ilasan Microfinance Bank",
+    "code": "090370",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090371",
+    "name": "Agosasa Microfinance Bank",
+    "code": "090371",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090372",
+    "name": "Legend Microfinance Bank",
+    "code": "090372",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090373",
+    "name": "Tf Microfinance Bank",
+    "code": "090373",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090374",
+    "name": "Coastline Microfinance Bank",
+    "code": "090374",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090376",
+    "name": "Apple  Microfinance Bank",
+    "code": "090376",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090377",
+    "name": "Isaleoyo Microfinance Bank",
+    "code": "090377",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090378",
+    "name": "New Golden Pastures Microfinance Bank",
+    "code": "090378",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090379",
+    "name": "Peniel Micorfinance Bank Ltd",
+    "code": "090379",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090380",
+    "name": "Kredi Money Microfinance Bank",
+    "code": "090380",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090383",
+    "name": "Manny Microfinance bank",
+    "code": "090383",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090385",
+    "name": "Gti  Microfinance Bank",
+    "code": "090385",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090386",
+    "name": "Interland Microfinance Bank",
+    "code": "090386",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090389",
+    "name": "Ek-Reliable Microfinance Bank",
+    "code": "090389",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090390",
+    "name": "Parkway Mf Bank",
+    "code": "090390",
+    "type": "commercial",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090391",
+    "name": "Davodani  Microfinance Bank",
+    "code": "090391",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090392",
+    "name": "Mozfin Microfinance Bank",
+    "code": "090392",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090393",
+    "name": "BRIDGEWAY MICROFINANCE BANK",
+    "code": "090393",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090394",
+    "name": "Amac Microfinance Bank",
+    "code": "090394",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090395",
+    "name": "Borgu Microfinance Bank",
+    "code": "090395",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090396",
+    "name": "Oscotech Microfinance Bank",
+    "code": "090396",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090397",
+    "name": "Chanelle Bank",
+    "code": "090397",
+    "type": "commercial",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090398",
+    "name": "Federal Polytechnic Nekede Microfinance Bank",
+    "code": "090398",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090399",
+    "name": "Nwannegadi Microfinance Bank",
+    "code": "090399",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090400",
+    "name": "Finca Microfinance Bank",
+    "code": "090400",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090401",
+    "name": "Shepherd Trust Microfinance Bank",
+    "code": "090401",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090402",
+    "name": "Peace Microfinance Bank",
+    "code": "090402",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090403",
+    "name": "Uda Microfinance Bank",
+    "code": "090403",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090404",
+    "name": "Olowolagba Microfinance Bank",
+    "code": "090404",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090406",
+    "name": "Business Support Microfinance Bank",
+    "code": "090406",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090408",
+    "name": "Gmb Microfinance Bank",
+    "code": "090408",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090409",
+    "name": "Fcmb Microfinance Bank",
+    "code": "090409",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090410",
+    "name": "Maritime Microfinance Bank",
+    "code": "090410",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090411",
+    "name": "Giginya Microfinance Bank",
+    "code": "090411",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090412",
+    "name": "Preeminent Microfinance Bank",
+    "code": "090412",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090413",
+    "name": "Benysta Microfinance Bank",
+    "code": "090413",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090414",
+    "name": "Crutech  Microfinance Bank",
+    "code": "090414",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090415",
+    "name": "Calabar Microfinance Bank",
+    "code": "090415",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090416",
+    "name": "Chibueze Microfinance Bank",
+    "code": "090416",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090417",
+    "name": "Imowo Microfinance Bank",
+    "code": "090417",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090418",
+    "name": "Highland Microfinance Bank",
+    "code": "090418",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090419",
+    "name": "Winview Bank",
+    "code": "090419",
+    "type": "commercial",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090420",
+    "name": "Letshego MFB",
+    "code": "090420",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090421",
+    "name": "Izon Microfinance Bank",
+    "code": "090421",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090422",
+    "name": "Landgold  Microfinance Bank",
+    "code": "090422",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090423",
+    "name": "MAUTECH Microfinance Bank",
+    "code": "090423",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090424",
+    "name": "Abucoop  Microfinance Bank",
+    "code": "090424",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090425",
+    "name": "Banex Microfinance Bank",
+    "code": "090425",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090426",
+    "name": "Tangerine Bank",
+    "code": "090426",
+    "type": "commercial",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090427",
+    "name": "Ebsu Microfinance Bank",
+    "code": "090427",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090428",
+    "name": "Ishie  Microfinance Bank",
+    "code": "090428",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090429",
+    "name": "Crossriver  Microfinance Bank",
+    "code": "090429",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090430",
+    "name": "Ilora Microfinance Bank",
+    "code": "090430",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090431",
+    "name": "Bluewhales  Microfinance Bank",
+    "code": "090431",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090432",
+    "name": "Memphis Microfinance Bank",
+    "code": "090432",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090433",
+    "name": "Rigo Microfinance Bank",
+    "code": "090433",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090434",
+    "name": "Insight Microfinance Bank",
+    "code": "090434",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090435",
+    "name": "Links Microfinance Bank",
+    "code": "090435",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090436",
+    "name": "Spectrum Microfinance Bank",
+    "code": "090436",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090437",
+    "name": "Oakland Microfinance Bank",
+    "code": "090437",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090438",
+    "name": "Futminna Microfinance Bank",
+    "code": "090438",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090439",
+    "name": "Ibeto  Microfinance Bank",
+    "code": "090439",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090440",
+    "name": "Cherish Microfinance Bank",
+    "code": "090440",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090441",
+    "name": "Giwa Microfinance Bank",
+    "code": "090441",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090443",
+    "name": "Rima Microfinance Bank",
+    "code": "090443",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090444",
+    "name": "Boi Mf Bank",
+    "code": "090444",
+    "type": "commercial",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090445",
+    "name": "Capstone Mf Bank",
+    "code": "090445",
+    "type": "commercial",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090446",
+    "name": "Support Mf Bank",
+    "code": "090446",
+    "type": "commercial",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090448",
+    "name": "Moyofade Mf Bank",
+    "code": "090448",
+    "type": "commercial",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090449",
+    "name": "REX MICROFINANCE BANK",
+    "code": "090449",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090450",
+    "name": "Kwasu Mf Bank",
+    "code": "090450",
+    "type": "commercial",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090451",
+    "name": "Atbu  Microfinance Bank",
+    "code": "090451",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090452",
+    "name": "Unilag  Microfinance Bank",
+    "code": "090452",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090453",
+    "name": "Uzondu Mf Bank",
+    "code": "090453",
+    "type": "commercial",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090454",
+    "name": "Borstal Microfinance Bank",
+    "code": "090454",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090455",
+    "name": "MKOBO MICROFINANCE BANK LTD",
+    "code": "090455",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090456",
+    "name": "Ospoly Microfinance Bank",
+    "code": "090456",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090459",
+    "name": "Nice Microfinance Bank",
+    "code": "090459",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090460",
+    "name": "Oluyole Microfinance Bank",
+    "code": "090460",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090461",
+    "name": "Uniibadan Microfinance Bank",
+    "code": "090461",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090462",
+    "name": "Monarch Microfinance Bank",
+    "code": "090462",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090463",
+    "name": "Rehoboth Microfinance Bank",
+    "code": "090463",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090464",
+    "name": "Unimaid Microfinance Bank",
+    "code": "090464",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090465",
+    "name": "Maintrust Microfinance Bank",
+    "code": "090465",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090466",
+    "name": "Yct Microfinance Bank",
+    "code": "090466",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090467",
+    "name": "Good Neighbours Microfinance Bank",
+    "code": "090467",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090468",
+    "name": "Olofin Owena Microfinance Bank",
+    "code": "090468",
+    "type": "mfb",
+    "badgeColor": "#E04403"
+  },
+  {
+    "id": "bank_090469",
+    "name": "Aniocha Microfinance Bank",
+    "code": "090469",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090470",
+    "name": "DOT MICROFINANCE BANK",
+    "code": "090470",
+    "type": "mfb",
+    "badgeColor": "#40196D",
+    "popular": true
+  },
+  {
+    "id": "bank_090471",
+    "name": "Oluchukwu Microfinance Bank",
+    "code": "090471",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090472",
+    "name": "Caretaker Microfinance Bank",
+    "code": "090472",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090473",
+    "name": "Assets Microfinance Bank",
+    "code": "090473",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090474",
+    "name": "Verdant Microfinance Bank",
+    "code": "090474",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090475",
+    "name": "Giant Stride Microfinance Bank",
+    "code": "090475",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090476",
+    "name": "Anchorage Microfinance Bank",
+    "code": "090476",
+    "type": "mfb",
+    "badgeColor": "#103F91"
+  },
+  {
+    "id": "bank_090477",
+    "name": "Light Microfinance Bank",
+    "code": "090477",
+    "type": "mfb",
+    "badgeColor": "#FF6200"
+  },
+  {
+    "id": "bank_090478",
+    "name": "Avuenegbe Microfinance Bank",
+    "code": "090478",
+    "type": "mfb",
+    "badgeColor": "#00B875"
+  },
+  {
+    "id": "bank_090479",
+    "name": "First Heritage Microfinance Bank",
+    "code": "090479",
+    "type": "mfb",
+    "badgeColor": "#003399"
+  },
+  {
+    "id": "bank_090480",
+    "name": "KOLOMONI MICROFINANCE BANK",
+    "code": "090480",
+    "type": "mfb",
+    "badgeColor": "#E04403",
+    "popular": true
+  },
+  {
+    "id": "bank_090481",
+    "name": "Prisco  Microfinance Bank",
+    "code": "090481",
+    "type": "mfb",
+    "badgeColor": "#6B38FB"
+  },
+  {
+    "id": "bank_090482",
+    "name": "CLEARPAY MICROFINANCE BANK",
+    "code": "090482",
+    "type": "mfb",
+    "badgeColor": "#40196D"
+  },
+  {
+    "id": "bank_090483",
+    "name": "Ada Microfinance Bank",
+    "code": "090483",
+    "type": "mfb",
+    "badgeColor": "#B22222"
+  },
+  {
+    "id": "bank_090484",
+    "name": "Garki Microfinance Bank",
+    "code": "090484",
+    "type": "mfb",
+    "badgeColor": "#003B64"
+  },
+  {
+    "id": "bank_090485",
+    "name": "Safegate Microfinance Bank",
+    "code": "090485",
+    "type": "mfb",
+    "badgeColor": "#0090DA"
+  },
+  {
+    "id": "bank_090486",
+    "name": "Fortress Microfinance Bank",
+    "code": "090486",
+    "type": "mfb",
+    "badgeColor": "#96154C"
+  },
+  {
+    "id": "bank_090487",
+    "name": "Kingdom College  Microfinance Bank",
+    "code": "090487",
+    "type": "mfb",
+    "badgeColor": "#5C1D82"
+  },
+  {
+    "id": "bank_090488",
+    "name": "Ibu-Aje Micro",
+    "code": "090488",
+    "type": "commercial",
+    "badgeColor": "#103F91"
+  }
+]
