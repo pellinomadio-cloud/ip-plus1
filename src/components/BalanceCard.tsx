@@ -1,11 +1,27 @@
-import React from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, Gift, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../data/marketData';
+import { USD_TO_NGN_EXCHANGE_RATE } from '../data/countries';
 
 export const BalanceCard: React.FC = () => {
-  const { currentUser, hideBalance, toggleHideBalance, todayPnl } = useAuth();
+  const { currentUser, hideBalance, toggleHideBalance, todayPnl, staffAccount, claimDailyGift, canClaimDailyGift } = useAuth();
   const balance = currentUser?.balance ?? 0.00;
+  const exchangeRate = staffAccount?.exchangeRateNgn || USD_TO_NGN_EXCHANGE_RATE;
+  const balanceNgn = Math.round(balance * exchangeRate);
+
+  const [claimFeedback, setClaimFeedback] = useState<string | null>(null);
+
+  const handleClaim = () => {
+    const res = claimDailyGift();
+    if (res.success) {
+      setClaimFeedback('+$20.00 Daily Gift Added!');
+      setTimeout(() => setClaimFeedback(null), 3500);
+    } else {
+      setClaimFeedback(res.message);
+      setTimeout(() => setClaimFeedback(null), 3500);
+    }
+  };
 
   // Compute daily display stats
   const isPositive = todayPnl.amount >= 0;
@@ -14,7 +30,7 @@ export const BalanceCard: React.FC = () => {
   const pnlPercentStr = Math.abs(todayPnl.percent).toFixed(2);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#131926] via-[#111722] to-[#161F2E] border border-slate-800/80 p-5 shadow-xl shadow-black/30">
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#131926] via-[#111722] to-[#161F2E] border border-slate-800/80 p-5 shadow-xl shadow-black/30 space-y-3">
       {/* Golden subtle ambient backlight glow */}
       <div className="absolute -top-12 -right-12 w-44 h-44 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -25,17 +41,26 @@ export const BalanceCard: React.FC = () => {
             <span className="text-slate-400 text-xs sm:text-sm font-medium">Total Balance</span>
             <button
               onClick={toggleHideBalance}
-              className="text-slate-400 hover:text-slate-200 transition-colors p-0.5"
+              className="text-slate-400 hover:text-slate-200 transition-colors p-0.5 cursor-pointer"
               aria-label={hideBalance ? "Show balance" : "Hide balance"}
             >
               {hideBalance ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             </button>
           </div>
 
-          <div className="mt-1.5 flex items-baseline gap-1">
+          <div className="mt-1.5 flex flex-col">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight font-mono tabular-nums">
               {hideBalance ? '••••••' : formatCurrency(balance)}
             </h2>
+            {/* Naira Balance Display */}
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-xs sm:text-sm font-bold font-mono text-emerald-400 tabular-nums">
+                {hideBalance ? '••••••' : `≈ ₦${balanceNgn.toLocaleString()} NGN`}
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">
+                (@ ₦{exchangeRate.toLocaleString()}/$)
+              </span>
+            </div>
           </div>
 
           <div className="mt-2 flex items-center gap-1.5 text-xs sm:text-sm">
@@ -48,7 +73,7 @@ export const BalanceCard: React.FC = () => {
         </div>
 
         {/* Right golden chart curve with arrow */}
-        <div className="w-36 h-20 sm:w-44 sm:h-24 relative flex items-center justify-end shrink-0">
+        <div className="w-28 h-18 sm:w-36 sm:h-22 relative flex items-center justify-end shrink-0">
           <svg
             viewBox="0 0 160 80"
             fill="none"
@@ -65,7 +90,6 @@ export const BalanceCard: React.FC = () => {
               </filter>
             </defs>
 
-            {/* Glowing gold upward jagged trajectory exactly like the screenshot */}
             <path
               d="M 10 65 L 20 62 L 28 68 L 38 52 L 48 58 L 60 42 L 72 48 L 88 32 L 98 38 L 115 22 L 128 26 L 148 10"
               stroke="#F5BA31"
@@ -75,7 +99,6 @@ export const BalanceCard: React.FC = () => {
               filter="url(#shadowFilter)"
             />
 
-            {/* Terminal arrowhead pointing up & right */}
             <path
               d="M 139 10 L 148 10 L 148 19"
               stroke="#F5BA31"
@@ -86,6 +109,46 @@ export const BalanceCard: React.FC = () => {
           </svg>
         </div>
       </div>
+
+      {/* Daily $20 App Visit Gift Claim Strip */}
+      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-amber-400/20 text-amber-400 flex items-center justify-center shrink-0">
+            <Gift className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <span className="text-xs font-bold text-white block truncate">
+              Daily Visit Trading Gift ($20.00)
+            </span>
+            <span className="text-[10px] text-slate-400 block truncate">
+              {canClaimDailyGift
+                ? "Available now! Claim $20 free trading balance."
+                : "Claimed for today! Visit tomorrow for your next $20."}
+            </span>
+          </div>
+        </div>
+
+        {canClaimDailyGift ? (
+          <button
+            onClick={handleClaim}
+            className="px-3 py-1.5 bg-[#F5BA31] hover:bg-[#ffc842] active:scale-[0.98] text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-amber-400/20 transition-all cursor-pointer shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Claim $20</span>
+          </button>
+        ) : (
+          <span className="px-2.5 py-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-[10px] rounded-lg flex items-center gap-1 shrink-0">
+            <CheckCircle2 className="w-3 h-3" />
+            <span>Claimed</span>
+          </span>
+        )}
+      </div>
+
+      {claimFeedback && (
+        <div className="p-2 rounded-xl bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs font-semibold text-center animate-in fade-in">
+          {claimFeedback}
+        </div>
+      )}
     </div>
   );
 };

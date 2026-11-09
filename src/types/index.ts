@@ -10,6 +10,8 @@ export interface User {
   country?: string;
   countryCode?: string;
   phoneNumber?: string;
+  lastDailyGiftClaimDate?: string;
+  totalClaimedGifts?: number;
 }
 
 

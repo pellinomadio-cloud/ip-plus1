@@ -50,68 +50,122 @@ interface LeaderboardTrader {
   primaryPair: string;
 }
 
-const STORAGE_KEY_COMMUNITY_POSTS = 'iq_plus_community_posts_v1';
+const STORAGE_KEY_COMMUNITY_POSTS = 'iq_plus_community_posts_v2';
 
 const INITIAL_POSTS: CommunityPost[] = [
   {
     id: 'post_1',
     author: 'Adebayo O.',
     accountTag: 'IQ-409182',
-    tier: 'Verified Trader',
-    timeAgo: '4m ago',
-    content: 'BTC/USD holding cleanly above the intraday VWAP support level. Entering a short-duration long position targeting the next liquidity pocket.',
+    tier: 'Pro Desk',
+    timeAgo: '2m ago',
+    content: 'BTC/USD 15m order block holding strong with surging volume. Took a 60-second BUY position after liquidity sweep at $68,390. Target $68,900 resistance.',
     signal: {
       symbol: 'BTC/USD',
       direction: 'BUY',
       entry: '$68,410',
-      timeframe: '5m'
+      timeframe: '1m'
     },
-    likes: 34
+    likes: 42
   },
   {
     id: 'post_2',
     author: 'Chidinma K.',
     accountTag: 'IQ-772310',
-    tier: 'Pro Desk',
-    timeAgo: '16m ago',
-    content: 'London session open gave a clean rejection on EUR/USD around 1.0850. Closed two consecutive trades in profit and withdrew ₦420,000 via NIP to OPay in under 3 minutes.',
+    tier: 'Senior Analyst',
+    timeAgo: '9m ago',
+    content: 'EUR/USD London/NY overlap rejection at 1.0855 resistance. Bearish momentum divergence confirmed on RSI. Clean $180 profit booked, instant NIP withdrawal to PalmPay received.',
     signal: {
       symbol: 'EUR/USD',
       direction: 'SELL',
       entry: '1.0848',
-      timeframe: '1m'
+      timeframe: '5m'
     },
-    likes: 58
+    likes: 67
   },
   {
     id: 'post_3',
-    author: 'Marcus Vance',
-    accountTag: 'IQ-119044',
-    tier: 'Senior Analyst',
-    timeAgo: '32m ago',
-    content: 'Gold (XAU/USD) continues to attract strong bid volume ahead of the US macro release. Keep position sizing disciplined at 2-3% per trade.',
+    author: 'Tariq Al-Mansoor',
+    accountTag: 'IQ-923841',
+    tier: 'Verified Trader',
+    timeAgo: '18m ago',
+    content: 'Gold (XAU/USD) bullish pennant breakout confirmed! Big institutional bids defending $2,342 support zone. Ramping up leverage responsibly on 1m expiry.',
     signal: {
       symbol: 'XAU/USD',
       direction: 'BUY',
       entry: '$2,346.50',
-      timeframe: '15m'
+      timeframe: '1m'
     },
-    likes: 41
+    likes: 53
   },
   {
     id: 'post_4',
-    author: 'Tunde Bakare',
-    accountTag: 'IQ-883920',
+    author: 'Elena Rostova',
+    accountTag: 'IQ-310482',
+    tier: 'Pro Desk',
+    timeAgo: '29m ago',
+    content: 'ETH/USD double bottom pattern playing out on the 5-minute candle charts. Entering high-probability BUY trade as volume delta turns net positive.',
+    signal: {
+      symbol: 'ETH/USD',
+      direction: 'BUY',
+      entry: '$3,520.10',
+      timeframe: '5m'
+    },
+    likes: 38
+  },
+  {
+    id: 'post_5',
+    author: 'Ibrahim Musa',
+    accountTag: 'IQ-552910',
     tier: 'Verified Trader',
-    timeAgo: '1h ago',
-    content: 'SOL/USD momentum breakout confirmed on 5-minute candles. Taking partial profits here.',
+    timeAgo: '42m ago',
+    content: 'GBP/USD false breakout above 1.2980. Re-testing lower channel support. Fast scalp SELL trade won with 85% payout!',
+    signal: {
+      symbol: 'GBP/USD',
+      direction: 'SELL',
+      entry: '1.2965',
+      timeframe: '1m'
+    },
+    likes: 29
+  },
+  {
+    id: 'post_6',
+    author: 'David Chen',
+    accountTag: 'IQ-904112',
+    tier: 'Senior Analyst',
+    timeAgo: '58m ago',
+    content: 'SOL/USD break-and-retest structure formed at $153.80. High volume expansion on 15m timeframe. Scalping upwards.',
     signal: {
       symbol: 'SOL/USD',
       direction: 'BUY',
       entry: '$154.80',
+      timeframe: '15m'
+    },
+    likes: 45
+  },
+  {
+    id: 'post_7',
+    author: 'Ngozi Eze',
+    accountTag: 'IQ-663819',
+    tier: 'Verified Trader',
+    timeAgo: '1h ago',
+    content: 'US Crude Oil (USOIL) bouncing off daily horizontal demand. Clean rejection wick on 5m candles. Took $50 BUY setup and locked in $42.50 gain.',
+    signal: {
+      symbol: 'USOIL',
+      direction: 'BUY',
+      entry: '$78.25',
       timeframe: '5m'
     },
-    likes: 27
+    likes: 31
+  },
+  {
+    id: 'post_8',
+    author: 'Marcus Vance',
+    accountTag: 'IQ-119044',
+    tier: 'Pro Desk',
+    timeAgo: '2h ago',
+    content: 'Reminder to all traders: strictly stick to your risk management rules. Even with high win-rate signals, never risk more than 5% of balance per position. Trade with the trend.',
+    likes: 84
   }
 ];
 

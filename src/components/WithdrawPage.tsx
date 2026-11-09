@@ -90,6 +90,14 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
       return;
     }
 
+    if (numAmount < 100) {
+      setStatusMessage({
+        type: 'error',
+        text: 'Minimum withdrawal is $100.00. You must accumulate at least $100.00 before requesting a withdrawal.'
+      });
+      return;
+    }
+
     if (numAmount > currentBalance) {
       setStatusMessage({
         type: 'error',
@@ -411,7 +419,12 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
             {/* Withdrawal Amount Card */}
             <div className="p-4 bg-[#111722] border border-slate-800 rounded-2xl space-y-3.5">
               <div className="flex justify-between items-center">
-                <label className="text-xs font-bold text-white">Withdrawal Amount (USD)</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-white">Withdrawal Amount (USD)</label>
+                  <span className="text-[10px] bg-amber-400/15 border border-amber-400/30 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">
+                    Min $100.00
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => handlePercentage(1)}
@@ -427,11 +440,11 @@ export const WithdrawPage: React.FC<WithdrawPageProps> = ({ onBack, onOpenDeposi
                 </span>
                 <input
                   type="number"
-                  min="1"
+                  min="100"
                   max={currentBalance || undefined}
                   step="0.01"
                   required
-                  placeholder="0.00"
+                  placeholder="Min 100.00"
                   value={amount}
                   onChange={e => setAmount(e.target.value)}
                   className="w-full pl-8 pr-14 py-2.5 bg-[#0B0F17] border border-slate-800 rounded-xl text-lg font-mono font-bold text-white focus:outline-none focus:border-amber-400 tabular-nums"

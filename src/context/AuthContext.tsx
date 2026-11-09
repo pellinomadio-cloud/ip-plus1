@@ -138,6 +138,8 @@ interface AuthContextType {
     proofImageUrl?: string;
     proofFileName?: string;
   }) => { success: boolean; message: string; requestId: string };
+  claimDailyGift: () => { success: boolean; message: string; amountAdded?: number };
+  canClaimDailyGift: boolean;
 }
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -833,18 +835,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const randomAcc = 'IQ-' + Math.floor(100000 + Math.random() * 900000);
+      const todayDateStr = new Date().toISOString().split('T')[0];
       const newUser: User = {
         id: 'usr_' + Date.now(),
         name: name.trim(),
         email: cleanEmail,
-        balance: 0.00, // Strictly 0.00 starting balance as requested
+        balance: 20.00, // $20 registration gift credited directly to balance
         currency: 'USD',
         registeredAt: new Date().toISOString(),
         isKycVerified: true,
         accountNumber: randomAcc,
         country: country || 'Nigeria',
         countryCode: countryCode || 'NG',
-        phoneNumber: phoneNumber || ''
+        phoneNumber: phoneNumber || '',
+        lastDailyGiftClaimDate: todayDateStr,
+        totalClaimedGifts: 1
       };
 
       usersDb.push({ ...newUser, password });
@@ -862,18 +867,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('Firestore register error:', err);
       }
 
-      // Add welcome transaction
-      const welcomeTx: Transaction = {
-        id: 'tx_welcome_' + Date.now(),
+      // Add registration gift credit transaction
+      const welcomeGiftTx: Transaction = {
+        id: 'tx_gift_' + Date.now(),
         type: 'deposit',
-        amount: 0.00,
+        amount: 20.00,
         status: 'completed',
         timestamp: new Date().toISOString(),
-        title: 'Account Opening Verification',
-        reference: 'REG-' + Math.floor(100000 + Math.random() * 900000),
-        method: 'Standard Verification'
+        title: 'Welcome Gift: $20.00 Registration Bonus',
+        reference: 'GIFT-' + Math.floor(100000 + Math.random() * 900000),
+        method: 'Registration Trading Gift'
       };
-      setTransactions([welcomeTx]);
+      setTransactions([welcomeGiftTx]);
       setPositions([]);
       setClosedPositions([]);
 
@@ -1010,6 +1015,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ) => {
     if (!currentUser) return { success: false, message: 'Please log in to withdraw.' };
     if (amount <= 0) return { success: false, message: 'Withdrawal amount must be greater than zero.' };
+    if (amount < 100) {
+      return {
+        success: false,
+        message: 'Minimum withdrawal is $100.00. Please trade or accumulate your balance to at least $100.00 to request a payout.'
+      };
+    }
     if (currentUser.balance < amount) {
       return {
         success: false,
@@ -1547,6 +1558,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
+  const todayDateKey = new Date().toISOString().split('T')[0];
+  const canClaimDailyGift = Boolean(currentUser && currentUser.lastDailyGiftClaimDate !== todayDateKey);
+
+  const claimDailyGift = () => {
+    if (!currentUser) {
+      return { success: false, message: 'Please log in to claim your daily trading gift.' };
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    if (currentUser.lastDailyGiftClaimDate === today) {
+      return { success: false, message: "You have already claimed today's $20.00 gift! Visit again tomorrow to claim another $20." };
+    }
+
+    const giftAmount = 20.00;
+    const newBal = Number((currentUser.balance + giftAmount).toFixed(2));
+    const newTotal = (currentUser.totalClaimedGifts || 0) + 1;
+    const updatedUser: User = {
+      ...currentUser,
+      balance: newBal,
+      lastDailyGiftClaimDate: today,
+      totalClaimedGifts: newTotal
+    };
+
+    setCurrentUser(updatedUser);
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updatedUser));
+
+    // Update in local users database
+    try {
+      const usersDbStr = localStorage.getItem(STORAGE_KEY_USERS_DB);
+      const usersDb = usersDbStr ? JSON.parse(usersDbStr) : [];
+      const idx = usersDb.findIndex((u: User) => u.email.toLowerCase() === currentUser.email.toLowerCase());
+      if (idx >= 0) {
+        usersDb[idx] = { ...usersDb[idx], ...updatedUser };
+        localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(usersDb));
+      }
+    } catch {}
+
+    // Update in Firestore
+    try {
+      const uRef = doc(db, 'users', currentUser.id);
+      updateDoc(uRef, {
+        balance: newBal,
+        lastDailyGiftClaimDate: today,
+        totalClaimedGifts: newTotal
+      }).catch(() => {});
+    } catch {}
+
+    // Add transaction log
+    const giftTx: Transaction = {
+      id: 'tx_daily_gift_' + Date.now(),
+      type: 'deposit',
+      amount: giftAmount,
+      status: 'completed',
+      timestamp: new Date().toISOString(),
+      title: 'Daily App Visit Gift: $20.00 Credited',
+      reference: 'DAY-' + Math.floor(100000 + Math.random() * 900000),
+      method: 'Daily Trader Bonus'
+    };
+    setTransactions(prev => [giftTx, ...prev]);
+
+    return {
+      success: true,
+      message: 'Congratulations! $20.00 daily gift has been added to your trading balance.',
+      amountAdded: giftAmount
+    };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -1593,7 +1671,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cancelOrRedeemInvestment,
         staffAccount,
         updateStaffAccount,
-        submitBankTransferDeposit
+        submitBankTransferDeposit,
+        claimDailyGift,
+        canClaimDailyGift
       }}
     >
       {children}
