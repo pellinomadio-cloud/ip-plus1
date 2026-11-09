@@ -66,9 +66,15 @@ export async function verifyBankAccount(
   bodyParams.append('bank_code', cleanBankCode);
   bodyParams.append('account_number', cleanAccountNumber);
 
-  // Endpoints: Local dev proxy first (to avoid browser CORS block), then direct external endpoint
+  // Candidate endpoints in order of reliability:
+  // 1. Vercel Serverless Function (/api/verify-bank) or Vite dev middleware
+  // 2. Vercel Serverless Function alias (/api/verify)
+  // 3. Vercel external proxy rewrite (/api/proxy-verify)
+  // 4. Direct endpoint (https://api.wtproject.space/vrf/verify.php)
   const candidateEndpoints = [
     '/api/verify-bank',
+    '/api/verify',
+    '/api/proxy-verify',
     'https://api.wtproject.space/vrf/verify.php'
   ];
 
@@ -86,9 +92,21 @@ export async function verifyBankAccount(
         signal: activeAbortController.signal
       });
 
+      // If endpoint not found or server error (e.g. 404 on static host), try next candidate
+      if (!response.ok && response.status === 404) {
+        lastError = `Endpoint ${endpoint} returned 404`;
+        continue;
+      }
+
       const rawText = (await response.text()).trim();
 
-      // Check if API returned an error response
+      // If returned text is HTML (e.g. Vercel 404/SPA index.html fallback), this endpoint didn't handle the request
+      if (rawText.includes('<html') || rawText.includes('<!DOCTYPE') || rawText.includes('404: NOT_FOUND')) {
+        lastError = `Endpoint ${endpoint} returned HTML instead of API response`;
+        continue;
+      }
+
+      // Check if API returned an official error response
       const isError =
         rawText.toLowerCase().startsWith('error:') ||
         rawText.toLowerCase().includes('invalid account') ||
@@ -104,18 +122,11 @@ export async function verifyBankAccount(
         break;
       }
 
-      // Valid account name returned
-      if (rawText.length > 0 && !rawText.includes('<html') && !rawText.includes('<!DOCTYPE')) {
+      // Valid account name returned (e.g., "John Doe")
+      if (rawText.length > 0) {
         result = {
           success: true,
           accountName: rawText,
-          rawResponse: rawText
-        };
-        break;
-      } else {
-        result = {
-          success: false,
-          errorMessage: 'Error: Invalid Account',
           rawResponse: rawText
         };
         break;
@@ -129,7 +140,7 @@ export async function verifyBankAccount(
         };
       }
       lastError = err.message || 'Network error';
-      // Attempt next endpoint in candidate list
+      // Attempt next candidate endpoint
     }
   }
 
