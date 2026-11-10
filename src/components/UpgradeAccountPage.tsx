@@ -91,10 +91,28 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
   onBack,
   onSuccessReturn
 }) => {
-  const { currentUser, staffAccount, submitBankTransferDeposit, currentAccountLevel, dailyRewardAmount } = useAuth();
+  const {
+    currentUser,
+    staffAccount,
+    submitBankTransferDeposit,
+    currentAccountLevel,
+    dailyRewardAmount,
+    upgradeTierPrices
+  } = useAuth();
+
+  // Compute dynamic tiers using admin-configured prices
+  const dynamicTiers: UpgradeTier[] = UPGRADE_TIERS.map(t => {
+    const customPrice = upgradeTierPrices[t.level as 2 | 3 | 4 | 5] || t.priceNgn;
+    return {
+      ...t,
+      priceNgn: customPrice,
+      priceFormatted: `₦${customPrice.toLocaleString()}`
+    };
+  });
 
   // Null means user is on Page 1 (Viewing all plans). Once they select a plan, it opens Page 2 (Payment & Upload).
-  const [selectedTier, setSelectedTier] = useState<UpgradeTier | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
+  const selectedTier = selectedLevel ? dynamicTiers.find(t => t.level === selectedLevel) || null : null;
   const [proofFileName, setProofFileName] = useState('');
   const [proofFileSize, setProofFileSize] = useState<string>('');
   const [proofPreviewUrl, setProofPreviewUrl] = useState('');
@@ -202,11 +220,11 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
 
         {/* Plans List */}
         <div className="max-w-md mx-auto p-4 space-y-3.5">
-          {UPGRADE_TIERS.map(tier => (
+          {dynamicTiers.map(tier => (
             <div
               key={tier.level}
               onClick={() => {
-                setSelectedTier(tier);
+                setSelectedLevel(tier.level);
                 setStatusMessage(null);
               }}
               className={`p-4 rounded-2xl border transition-all cursor-pointer ${
@@ -278,7 +296,7 @@ export const UpgradeAccountPage: React.FC<UpgradeAccountPageProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
-              setSelectedTier(null);
+              setSelectedLevel(null);
               setStatusMessage(null);
             }}
             className="p-2 rounded-xl bg-[#141B27] border border-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"

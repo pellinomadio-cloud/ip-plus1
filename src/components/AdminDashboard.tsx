@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { User, DepositRequest } from '../types';
 import { formatCurrency } from '../data/marketData';
-import { useAuth, LEGACY_DUMMY_CRYPTO_ADDRESSES } from '../context/AuthContext';
+import { useAuth, LEGACY_DUMMY_CRYPTO_ADDRESSES, DEFAULT_UPGRADE_PRICES } from '../context/AuthContext';
 import { usePriceAlerts } from '../context/PriceAlertContext';
 import { useMarket } from '../context/MarketContext';
 import { db } from '../firebase';
@@ -56,7 +56,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     adminWinRatePercent,
     updateAdminWinRatePercent,
     staffAccount,
-    updateStaffAccount
+    updateStaffAccount,
+    upgradeTierPrices,
+    updateUpgradeTierPrices
   } = useAuth();
 
   const { assets } = useMarket();
@@ -198,6 +200,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     });
     setStaffSavedNotice(true);
     setTimeout(() => setStaffSavedNotice(false), 3500);
+  };
+
+  // Account Upgrade Plan Prices State (Admin Editable)
+  const [priceLevel2, setPriceLevel2] = useState<number>(upgradeTierPrices[2] || DEFAULT_UPGRADE_PRICES[2]);
+  const [priceLevel3, setPriceLevel3] = useState<number>(upgradeTierPrices[3] || DEFAULT_UPGRADE_PRICES[3]);
+  const [priceLevel4, setPriceLevel4] = useState<number>(upgradeTierPrices[4] || DEFAULT_UPGRADE_PRICES[4]);
+  const [priceLevel5, setPriceLevel5] = useState<number>(upgradeTierPrices[5] || DEFAULT_UPGRADE_PRICES[5]);
+  const [upgradePricesSavedNotice, setUpgradePricesSavedNotice] = useState<string>('');
+
+  useEffect(() => {
+    if (upgradeTierPrices) {
+      setPriceLevel2(upgradeTierPrices[2] || DEFAULT_UPGRADE_PRICES[2]);
+      setPriceLevel3(upgradeTierPrices[3] || DEFAULT_UPGRADE_PRICES[3]);
+      setPriceLevel4(upgradeTierPrices[4] || DEFAULT_UPGRADE_PRICES[4]);
+      setPriceLevel5(upgradeTierPrices[5] || DEFAULT_UPGRADE_PRICES[5]);
+    }
+  }, [upgradeTierPrices]);
+
+  const handleSaveUpgradePrices = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateUpgradeTierPrices({
+      2: Number(priceLevel2) || DEFAULT_UPGRADE_PRICES[2],
+      3: Number(priceLevel3) || DEFAULT_UPGRADE_PRICES[3],
+      4: Number(priceLevel4) || DEFAULT_UPGRADE_PRICES[4],
+      5: Number(priceLevel5) || DEFAULT_UPGRADE_PRICES[5]
+    });
+    setUpgradePricesSavedNotice('Account upgrade prices updated! All users now see the new Naira upgrade plan prices.');
+    setTimeout(() => setUpgradePricesSavedNotice(''), 4000);
+  };
+
+  const handleResetUpgradePrices = () => {
+    setPriceLevel2(DEFAULT_UPGRADE_PRICES[2]);
+    setPriceLevel3(DEFAULT_UPGRADE_PRICES[3]);
+    setPriceLevel4(DEFAULT_UPGRADE_PRICES[4]);
+    setPriceLevel5(DEFAULT_UPGRADE_PRICES[5]);
+    updateUpgradeTierPrices(DEFAULT_UPGRADE_PRICES);
+    setUpgradePricesSavedNotice('Upgrade prices reset to default values (₦17,350 / ₦28,000 / ₦42,500 / ₦89,000).');
+    setTimeout(() => setUpgradePricesSavedNotice(''), 4000);
   };
   
   // Win Rate Slider Local State
@@ -1013,6 +1053,124 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 className="w-full px-3 py-2 bg-[#0B0F17] border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-400 resize-none"
                 placeholder="Instructions displayed to users on the bank transfer screen..."
               />
+            </div>
+          </form>
+        </div>
+
+        {/* Admin Section: Account Upgrade Plan Prices (NGN) */}
+        <div className="p-4 bg-[#121824] border border-amber-400/35 rounded-2xl space-y-4 shadow-lg shadow-black/30">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Zap className="w-4 h-4 text-amber-400" />
+                Account Upgrade Plan Prices (NGN)
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Change the Naira upgrading price for Level 2, Level 3, Level 4, and Level 5 plans shown to users on the Upgrade page.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={handleResetUpgradePrices}
+                className="py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                Reset Defaults
+              </button>
+              <button
+                type="submit"
+                form="upgrade-prices-form"
+                className="py-1.5 px-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-amber-400/20"
+              >
+                <Save className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Save Upgrade Prices</span>
+              </button>
+            </div>
+          </div>
+
+          {upgradePricesSavedNotice && (
+            <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{upgradePricesSavedNotice}</span>
+            </div>
+          )}
+
+          <form id="upgrade-prices-form" onSubmit={handleSaveUpgradePrices} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="p-3 bg-[#0B0F17] border border-slate-800 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white">Level 2 Plan</label>
+                <span className="text-[10px] font-mono text-amber-400">$5/day reward</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₦</span>
+                <input
+                  type="number"
+                  min="100"
+                  step="50"
+                  required
+                  value={priceLevel2}
+                  onChange={(e) => setPriceLevel2(Number(e.target.value))}
+                  className="w-full pl-7 pr-3 py-2 bg-[#121824] border border-slate-800 rounded-lg text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-[#0B0F17] border border-slate-800 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white">Level 3 Plan</label>
+                <span className="text-[10px] font-mono text-amber-400">$10/day reward</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₦</span>
+                <input
+                  type="number"
+                  min="100"
+                  step="50"
+                  required
+                  value={priceLevel3}
+                  onChange={(e) => setPriceLevel3(Number(e.target.value))}
+                  className="w-full pl-7 pr-3 py-2 bg-[#121824] border border-slate-800 rounded-lg text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-[#0B0F17] border border-slate-800 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white">Level 4 Plan</label>
+                <span className="text-[10px] font-mono text-amber-400">$20/day reward</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₦</span>
+                <input
+                  type="number"
+                  min="100"
+                  step="50"
+                  required
+                  value={priceLevel4}
+                  onChange={(e) => setPriceLevel4(Number(e.target.value))}
+                  className="w-full pl-7 pr-3 py-2 bg-[#121824] border border-slate-800 rounded-lg text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-[#0B0F17] border border-slate-800 rounded-xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white">Level 5 Plan</label>
+                <span className="text-[10px] font-mono text-amber-400">$50/day reward</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₦</span>
+                <input
+                  type="number"
+                  min="100"
+                  step="50"
+                  required
+                  value={priceLevel5}
+                  onChange={(e) => setPriceLevel5(Number(e.target.value))}
+                  className="w-full pl-7 pr-3 py-2 bg-[#121824] border border-slate-800 rounded-lg text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-amber-400"
+                />
+              </div>
             </div>
           </form>
         </div>

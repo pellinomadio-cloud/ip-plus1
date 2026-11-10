@@ -143,7 +143,25 @@ interface AuthContextType {
   canClaimDailyGift: boolean;
   dailyRewardAmount: number;
   currentAccountLevel: number;
+  upgradeTierPrices: UpgradeTierPrices;
+  updateUpgradeTierPrices: (prices: UpgradeTierPrices) => void;
 }
+
+export interface UpgradeTierPrices {
+  2: number;
+  3: number;
+  4: number;
+  5: number;
+}
+
+export const DEFAULT_UPGRADE_PRICES: UpgradeTierPrices = {
+  2: 17350,
+  3: 28000,
+  4: 42500,
+  5: 89000
+};
+
+const STORAGE_KEY_UPGRADE_PRICES = 'iq_upgrade_tier_prices';
 
 export const DAILY_REWARD_BY_LEVEL: Record<number, number> = {
   1: 1.00,
@@ -596,6 +614,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Account Upgrade Tier Prices State (Admin Configurable in NGN)
+  const [upgradeTierPrices, setUpgradeTierPrices] = useState<UpgradeTierPrices>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_UPGRADE_PRICES);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          2: Number(parsed[2]) > 0 ? Number(parsed[2]) : DEFAULT_UPGRADE_PRICES[2],
+          3: Number(parsed[3]) > 0 ? Number(parsed[3]) : DEFAULT_UPGRADE_PRICES[3],
+          4: Number(parsed[4]) > 0 ? Number(parsed[4]) : DEFAULT_UPGRADE_PRICES[4],
+          5: Number(parsed[5]) > 0 ? Number(parsed[5]) : DEFAULT_UPGRADE_PRICES[5]
+        };
+      }
+      return DEFAULT_UPGRADE_PRICES;
+    } catch {
+      return DEFAULT_UPGRADE_PRICES;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      const configRef = doc(db, 'system_settings', 'upgrade_prices');
+      const unsubscribe = onSnapshot(configRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (data) {
+            const nextPrices: UpgradeTierPrices = {
+              2: Number(data[2] ?? data.level2) > 0 ? Number(data[2] ?? data.level2) : DEFAULT_UPGRADE_PRICES[2],
+              3: Number(data[3] ?? data.level3) > 0 ? Number(data[3] ?? data.level3) : DEFAULT_UPGRADE_PRICES[3],
+              4: Number(data[4] ?? data.level4) > 0 ? Number(data[4] ?? data.level4) : DEFAULT_UPGRADE_PRICES[4],
+              5: Number(data[5] ?? data.level5) > 0 ? Number(data[5] ?? data.level5) : DEFAULT_UPGRADE_PRICES[5]
+            };
+            setUpgradeTierPrices(nextPrices);
+            localStorage.setItem(STORAGE_KEY_UPGRADE_PRICES, JSON.stringify(nextPrices));
+          }
+        }
+      }, () => {});
+      return () => unsubscribe();
+    } catch {}
+  }, []);
+
+  const updateUpgradeTierPrices = (prices: UpgradeTierPrices) => {
+    const cleaned: UpgradeTierPrices = {
+      2: Math.max(100, Number(prices[2]) || DEFAULT_UPGRADE_PRICES[2]),
+      3: Math.max(100, Number(prices[3]) || DEFAULT_UPGRADE_PRICES[3]),
+      4: Math.max(100, Number(prices[4]) || DEFAULT_UPGRADE_PRICES[4]),
+      5: Math.max(100, Number(prices[5]) || DEFAULT_UPGRADE_PRICES[5])
+    };
+    setUpgradeTierPrices(cleaned);
+    localStorage.setItem(STORAGE_KEY_UPGRADE_PRICES, JSON.stringify(cleaned));
+
+    try {
+      const configRef = doc(db, 'system_settings', 'upgrade_prices');
+      setDoc(configRef, {
+        ...cleaned,
+        updatedAt: new Date().toISOString()
+      }).catch((err) => {
+        console.warn('Firestore updateUpgradeTierPrices warning:', err);
+      });
+    } catch (e) {
+      console.warn('Firestore updateUpgradeTierPrices error:', e);
+    }
+  };
+
   const submitDepositRequest = (amount: number, network: string, txHash: string) => {
     if (!currentUser || amount <= 0 || hasPendingDeposit) return;
 
@@ -739,10 +821,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (match) detectedUpgradeLevel = Number(match[1]);
     }
     if (!detectedUpgradeLevel && targetReq.ngnAmount) {
-      if (targetReq.ngnAmount === 17350) detectedUpgradeLevel = 2;
-      else if (targetReq.ngnAmount === 28000) detectedUpgradeLevel = 3;
-      else if (targetReq.ngnAmount === 42500) detectedUpgradeLevel = 4;
-      else if (targetReq.ngnAmount === 89000) detectedUpgradeLevel = 5;
+      if (targetReq.ngnAmount === upgradeTierPrices[2] || targetReq.ngnAmount === 17350) detectedUpgradeLevel = 2;
+      else if (targetReq.ngnAmount === upgradeTierPrices[3] || targetReq.ngnAmount === 28000) detectedUpgradeLevel = 3;
+      else if (targetReq.ngnAmount === upgradeTierPrices[4] || targetReq.ngnAmount === 42500) detectedUpgradeLevel = 4;
+      else if (targetReq.ngnAmount === upgradeTierPrices[5] || targetReq.ngnAmount === 89000) detectedUpgradeLevel = 5;
     }
 
     // Update local request status
@@ -1746,7 +1828,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         claimDailyGift,
         canClaimDailyGift,
         dailyRewardAmount,
-        currentAccountLevel
+        currentAccountLevel,
+        upgradeTierPrices,
+        updateUpgradeTierPrices
       }}
     >
       {children}
