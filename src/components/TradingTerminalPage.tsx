@@ -35,12 +35,12 @@ import { MarketAsset, QuickTrade } from '../types';
 
 interface TradingTerminalPageProps {
   onOpenMenu: () => void;
-  onOpenDeposit: () => void;
+  onOpenUpgrade: () => void;
 }
 
 export const TradingTerminalPage: React.FC<TradingTerminalPageProps> = ({
   onOpenMenu,
-  onOpenDeposit
+  onOpenUpgrade
 }) => {
   const { currentUser, placeQuickTrade, quickTrades } = useAuth();
   const { assets, selectedAsset, setSelectedAsset } = useMarket();
@@ -110,7 +110,7 @@ export const TradingTerminalPage: React.FC<TradingTerminalPageProps> = ({
     if (balance < investment) {
       setTradeNotice({
         type: 'error',
-        message: `Insufficient balance ($${balance.toFixed(2)}). Deposit funds to invest $${investment}.`
+        message: `Insufficient balance ($${balance.toFixed(2)}) for $${investment} trade.`
       });
       return;
     }
@@ -162,8 +162,8 @@ export const TradingTerminalPage: React.FC<TradingTerminalPageProps> = ({
 
         {/* Right Balance Pill matching screenshot */}
         <button
-          onClick={onOpenDeposit}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#141B27] border border-slate-800 hover:border-slate-700 active:scale-[0.98] transition-all"
+          onClick={onOpenUpgrade}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#141B27] border border-slate-800 hover:border-amber-400/50 active:scale-[0.98] transition-all cursor-pointer"
         >
           <div className="w-5 h-5 rounded-md bg-amber-400/20 text-amber-400 flex items-center justify-center">
             <Wallet className="w-3.5 h-3.5" />
@@ -343,10 +343,10 @@ export const TradingTerminalPage: React.FC<TradingTerminalPageProps> = ({
           </div>
           {tradeNotice.type === 'error' && (
             <button
-              onClick={onOpenDeposit}
-              className="px-2 py-0.5 bg-amber-400 text-slate-950 font-bold rounded text-[11px]"
+              onClick={onOpenUpgrade}
+              className="px-2.5 py-1 bg-amber-400 text-slate-950 font-extrabold rounded-lg text-[11px] cursor-pointer"
             >
-              Deposit
+              Upgrade
             </button>
           )}
         </div>

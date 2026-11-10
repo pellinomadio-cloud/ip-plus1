@@ -1,15 +1,15 @@
 import React from 'react';
-import { Wallet, ArrowDownToLine, ArrowUpToLine, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Crown, ArrowDownToLine, ArrowUpToLine, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../data/marketData';
 
 interface WalletViewProps {
-  onOpenDeposit: () => void;
+  onOpenUpgrade: () => void;
   onOpenWithdraw: () => void;
 }
 
-export const WalletView: React.FC<WalletViewProps> = ({ onOpenDeposit, onOpenWithdraw }) => {
-  const { currentUser, transactions, positions, hideBalance, toggleHideBalance } = useAuth();
+export const WalletView: React.FC<WalletViewProps> = ({ onOpenUpgrade, onOpenWithdraw }) => {
+  const { currentUser, transactions, positions, hideBalance } = useAuth();
   const balance = currentUser?.balance || 0;
   const lockedMargin = positions.reduce((acc, p) => acc + p.margin, 0);
   const totalEquity = balance + lockedMargin;
@@ -43,20 +43,21 @@ export const WalletView: React.FC<WalletViewProps> = ({ onOpenDeposit, onOpenWit
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions: Beautiful Upgrade Button & Withdraw Button */}
         <div className="mt-5 grid grid-cols-2 gap-3">
           <button
-            onClick={onOpenDeposit}
-            className="py-3 px-4 bg-[#F5BA31] hover:bg-[#ffc842] active:scale-[0.98] text-slate-950 font-extrabold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/15 transition-all cursor-pointer"
+            onClick={onOpenUpgrade}
+            className="group relative overflow-hidden py-3 px-4 bg-gradient-to-r from-[#F5BA31] via-amber-400 to-[#F5BA31] hover:from-[#ffc842] hover:to-amber-300 active:scale-[0.98] text-slate-950 font-extrabold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all cursor-pointer"
           >
-            <ArrowDownToLine className="w-4 h-4" />
-            <span>Funds Wallet</span>
+            <Crown className="w-4 h-4 fill-slate-950/20 stroke-[2.2] group-hover:scale-110 transition-transform" />
+            <span>Upgrade Account</span>
+            <Sparkles className="w-3.5 h-3.5 text-slate-950/80" />
           </button>
           <button
             onClick={onOpenWithdraw}
             className="py-3 px-4 bg-[#141B27] hover:bg-[#1A2333] border border-slate-700 active:scale-[0.98] text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
           >
-            <ArrowUpToLine className="w-4 h-4" />
+            <ArrowUpToLine className="w-4 h-4 text-amber-400" />
             <span>Withdraw (NGN)</span>
           </button>
         </div>
@@ -81,7 +82,7 @@ export const WalletView: React.FC<WalletViewProps> = ({ onOpenDeposit, onOpenWit
         <h3 className="text-sm font-bold text-white tracking-tight">Recent Financial Activity</h3>
         {transactions.length === 0 ? (
           <div className="p-8 bg-[#141B27] border border-slate-800/80 rounded-2xl text-center text-slate-400 text-xs">
-            No transactions yet. Deposit funds to start.
+            No transactions yet. Claim your daily $1 reward or place a trade to start.
           </div>
         ) : (
           <div className="space-y-2">
@@ -143,7 +144,6 @@ export const WalletView: React.FC<WalletViewProps> = ({ onOpenDeposit, onOpenWit
                   )}
                 </div>
               </div>
-
             ))}
           </div>
         )}

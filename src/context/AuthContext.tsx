@@ -137,10 +137,26 @@ interface AuthContextType {
     referenceOrSessionId?: string;
     proofImageUrl?: string;
     proofFileName?: string;
+    upgradeLevel?: number;
   }) => { success: boolean; message: string; requestId: string };
   claimDailyGift: () => { success: boolean; message: string; amountAdded?: number };
   canClaimDailyGift: boolean;
+  dailyRewardAmount: number;
+  currentAccountLevel: number;
 }
+
+export const DAILY_REWARD_BY_LEVEL: Record<number, number> = {
+  1: 1.00,
+  2: 5.00,
+  3: 10.00,
+  4: 20.00,
+  5: 50.00
+};
+
+export const getDailyRewardForLevel = (level: number = 1): number => {
+  return DAILY_REWARD_BY_LEVEL[level] || 1.00;
+};
+
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -632,6 +648,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     referenceOrSessionId?: string;
     proofImageUrl?: string;
     proofFileName?: string;
+    upgradeLevel?: number;
   }) => {
     if (!currentUser || params.amountUsd <= 0) {
       return { success: false, message: 'Invalid deposit amount or not logged in.', requestId: '' };
@@ -648,7 +665,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (hasPendingDeposit) {
       return {
         success: false,
-        message: 'You already have a pending deposit awaiting admin approval. You cannot make another deposit until it is resolved.',
+        message: 'You already have a pending request awaiting admin approval.',
         requestId: ''
       };
     }
@@ -670,6 +687,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       proofFileName: params.proofFileName || 'transfer_receipt.jpg',
       senderName: params.senderName || currentUser.name,
       senderBank: params.senderBank || 'Local Bank',
+      upgradeLevel: params.upgradeLevel,
       staffAccountDetails: {
         bankName: staffAccount.bankName,
         accountNumber: staffAccount.accountNumber,
@@ -714,6 +732,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const targetReq = depositRequests.find(r => r.id === requestId);
     if (!targetReq) return { success: false, message: 'Deposit request not found.' };
 
+    // Detect if this request is an account upgrade and determine the target level
+    let detectedUpgradeLevel = targetReq.upgradeLevel || 0;
+    if (!detectedUpgradeLevel && targetReq.senderBank) {
+      const match = targetReq.senderBank.match(/Level\s*(\d+)/i);
+      if (match) detectedUpgradeLevel = Number(match[1]);
+    }
+    if (!detectedUpgradeLevel && targetReq.ngnAmount) {
+      if (targetReq.ngnAmount === 17350) detectedUpgradeLevel = 2;
+      else if (targetReq.ngnAmount === 28000) detectedUpgradeLevel = 3;
+      else if (targetReq.ngnAmount === 42500) detectedUpgradeLevel = 4;
+      else if (targetReq.ngnAmount === 89000) detectedUpgradeLevel = 5;
+    }
+
     // Update local request status
     setDepositRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: 'completed' } : r));
 
@@ -725,16 +756,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         approvedAt: new Date().toISOString()
       }).catch((e) => console.warn('Firestore approve request warning:', e));
 
-      // Also update user's balance in Firestore
+      // Also update user's balance & accountLevel in Firestore
       if (targetReq.userId) {
-        const userRef = doc(db, 'users', targetReq.userId);
         getDocs(collection(db, 'users')).then((snap) => {
           snap.forEach((uDoc) => {
             const uData = uDoc.data();
             if (uDoc.id === targetReq.userId || (uData.email && uData.email.toLowerCase() === targetReq.userEmail.toLowerCase())) {
               const currentBal = typeof uData.balance === 'number' ? uData.balance : 0;
               const newBal = Number((currentBal + targetReq.amount).toFixed(2));
-              updateDoc(doc(db, 'users', uDoc.id), { balance: newBal }).catch(() => {});
+              const currentLvl = typeof uData.accountLevel === 'number' ? uData.accountLevel : 1;
+              const newLvl = detectedUpgradeLevel > 0 ? Math.max(currentLvl, detectedUpgradeLevel) : currentLvl;
+              updateDoc(doc(db, 'users', uDoc.id), {
+                balance: newBal,
+                accountLevel: newLvl,
+                ...(detectedUpgradeLevel > currentLvl ? { lastDailyGiftClaimDate: '' } : {})
+              }).catch(() => {});
             }
           });
         }).catch(() => {});
@@ -743,7 +779,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Firestore approve error:', e);
     }
 
-    // Credit target user balance in registered DB
+    // Credit target user balance & accountLevel in registered DB
     try {
       const savedDbStr = localStorage.getItem(STORAGE_KEY_USERS_DB);
       const dbUsers: User[] = savedDbStr ? JSON.parse(savedDbStr) : [];
@@ -751,22 +787,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (userIdx >= 0) {
         dbUsers[userIdx].balance = Number((dbUsers[userIdx].balance + targetReq.amount).toFixed(2));
+        const currentLvl = dbUsers[userIdx].accountLevel || 1;
+        if (detectedUpgradeLevel > 0) {
+          dbUsers[userIdx].accountLevel = Math.max(currentLvl, detectedUpgradeLevel);
+          if (detectedUpgradeLevel > currentLvl) {
+            dbUsers[userIdx].lastDailyGiftClaimDate = '';
+          }
+        }
         localStorage.setItem(STORAGE_KEY_USERS_DB, JSON.stringify(dbUsers));
       }
     } catch (e) {
       console.error(e);
     }
 
-    // If active user is the target, credit their active balance
+    // If active user is the target, credit their active balance & upgrade their account level
     if (currentUser && currentUser.email.toLowerCase() === targetReq.userEmail.toLowerCase()) {
       const updatedBalance = Number((currentUser.balance + targetReq.amount).toFixed(2));
-      setCurrentUser({ ...currentUser, balance: updatedBalance });
+      const currentLvl = currentUser.accountLevel || 1;
+      const newLvl = detectedUpgradeLevel > 0 ? Math.max(currentLvl, detectedUpgradeLevel) : currentLvl;
+      setCurrentUser({
+        ...currentUser,
+        balance: updatedBalance,
+        accountLevel: newLvl,
+        ...(detectedUpgradeLevel > currentLvl ? { lastDailyGiftClaimDate: '' } : {})
+      });
     }
 
     // Update user pending transactions to completed
     setTransactions(prev => prev.map(tx => {
       if (tx.type === 'deposit' && tx.status === 'pending' && Math.abs(tx.amount - targetReq.amount) < 0.01) {
-        const confirmedTitle = targetReq.depositType === 'bank_transfer'
+        const confirmedTitle = detectedUpgradeLevel > 0
+          ? `Account Upgraded to Level ${detectedUpgradeLevel} (Daily Reward: $${getDailyRewardForLevel(detectedUpgradeLevel).toFixed(2)})`
+          : targetReq.depositType === 'bank_transfer'
           ? `Bank Transfer (${targetReq.staffAccountDetails?.bankName || 'Staff Account'}) Confirmed`
           : `USDT (${targetReq.network}) Deposit Confirmed`;
         return { ...tx, status: 'completed', title: confirmedTitle };
@@ -774,7 +826,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return tx;
     }));
 
-    return { success: true, message: `Approved $${targetReq.amount.toFixed(2)} deposit for ${targetReq.userName}!` };
+    return {
+      success: true,
+      message: detectedUpgradeLevel > 0
+        ? `Approved Level ${detectedUpgradeLevel} Upgrade for ${targetReq.userName}! Daily reward is now $${getDailyRewardForLevel(detectedUpgradeLevel).toFixed(2)}.`
+        : `Approved $${targetReq.amount.toFixed(2)} deposit for ${targetReq.userName}!`
+    };
   };
 
   const rejectDepositRequest = (requestId: string) => {
@@ -849,7 +906,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         countryCode: countryCode || 'NG',
         phoneNumber: phoneNumber || '',
         lastDailyGiftClaimDate: todayDateStr,
-        totalClaimedGifts: 1
+        totalClaimedGifts: 1,
+        accountLevel: 1
       };
 
       usersDb.push({ ...newUser, password });
@@ -912,7 +970,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           accountNumber: matched.accountNumber || 'IQ-883192',
           country: matched.country || 'Nigeria',
           countryCode: matched.countryCode || 'NG',
-          phoneNumber: matched.phoneNumber || ''
+          phoneNumber: matched.phoneNumber || '',
+          lastDailyGiftClaimDate: matched.lastDailyGiftClaimDate,
+          totalClaimedGifts: matched.totalClaimedGifts,
+          accountLevel: matched.accountLevel || 1
         };
         setCurrentUser(userSession);
         return { success: true };
@@ -935,7 +996,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 accountNumber: uData.accountNumber || 'IQ-883192',
                 country: uData.country || 'Nigeria',
                 countryCode: uData.countryCode || 'NG',
-                phoneNumber: uData.phoneNumber || ''
+                phoneNumber: uData.phoneNumber || '',
+                lastDailyGiftClaimDate: uData.lastDailyGiftClaimDate,
+                totalClaimedGifts: uData.totalClaimedGifts,
+                accountLevel: uData.accountLevel || 1
               };
               setCurrentUser(cloudUser);
               // Cache locally
@@ -1558,20 +1622,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
+  const currentAccountLevel = currentUser?.accountLevel || 1;
+  const dailyRewardAmount = getDailyRewardForLevel(currentAccountLevel);
   const todayDateKey = new Date().toISOString().split('T')[0];
   const canClaimDailyGift = Boolean(currentUser && currentUser.lastDailyGiftClaimDate !== todayDateKey);
 
   const claimDailyGift = () => {
     if (!currentUser) {
-      return { success: false, message: 'Please log in to claim your daily trading gift.' };
+      return { success: false, message: 'Please log in to claim your daily reward.' };
     }
 
+    const level = currentUser.accountLevel || 1;
+    const giftAmount = getDailyRewardForLevel(level);
     const today = new Date().toISOString().split('T')[0];
+
     if (currentUser.lastDailyGiftClaimDate === today) {
-      return { success: false, message: "You have already claimed today's $20.00 gift! Visit again tomorrow to claim another $20." };
+      return {
+        success: false,
+        message: `You have already claimed today's $${giftAmount.toFixed(2)} reward! Upgrade your account level to increase your daily reward.`
+      };
     }
 
-    const giftAmount = 20.00;
     const newBal = Number((currentUser.balance + giftAmount).toFixed(2));
     const newTotal = (currentUser.totalClaimedGifts || 0) + 1;
     const updatedUser: User = {
@@ -1612,15 +1683,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       amount: giftAmount,
       status: 'completed',
       timestamp: new Date().toISOString(),
-      title: 'Daily App Visit Gift: $20.00 Credited',
+      title: `Daily Reward (Level ${level}): $${giftAmount.toFixed(2)} Credited`,
       reference: 'DAY-' + Math.floor(100000 + Math.random() * 900000),
-      method: 'Daily Trader Bonus'
+      method: `Level ${level} Daily Reward`
     };
     setTransactions(prev => [giftTx, ...prev]);
 
     return {
       success: true,
-      message: 'Congratulations! $20.00 daily gift has been added to your trading balance.',
+      message: `Congratulations! $${giftAmount.toFixed(2)} daily reward (Level ${level}) has been added to your balance.`,
       amountAdded: giftAmount
     };
   };
@@ -1673,7 +1744,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateStaffAccount,
         submitBankTransferDeposit,
         claimDailyGift,
-        canClaimDailyGift
+        canClaimDailyGift,
+        dailyRewardAmount,
+        currentAccountLevel
       }}
     >
       {children}

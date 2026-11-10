@@ -5,7 +5,17 @@ import { formatCurrency } from '../data/marketData';
 import { USD_TO_NGN_EXCHANGE_RATE } from '../data/countries';
 
 export const BalanceCard: React.FC = () => {
-  const { currentUser, hideBalance, toggleHideBalance, todayPnl, staffAccount, claimDailyGift, canClaimDailyGift } = useAuth();
+  const {
+    currentUser,
+    hideBalance,
+    toggleHideBalance,
+    todayPnl,
+    staffAccount,
+    claimDailyGift,
+    canClaimDailyGift,
+    dailyRewardAmount,
+    currentAccountLevel
+  } = useAuth();
   const balance = currentUser?.balance ?? 0.00;
   const exchangeRate = staffAccount?.exchangeRateNgn || USD_TO_NGN_EXCHANGE_RATE;
   const balanceNgn = Math.round(balance * exchangeRate);
@@ -15,7 +25,7 @@ export const BalanceCard: React.FC = () => {
   const handleClaim = () => {
     const res = claimDailyGift();
     if (res.success) {
-      setClaimFeedback('+$20.00 Daily Gift Added!');
+      setClaimFeedback(`+$${(res.amountAdded || dailyRewardAmount).toFixed(2)} Daily Reward Added!`);
       setTimeout(() => setClaimFeedback(null), 3500);
     } else {
       setClaimFeedback(res.message);
@@ -110,7 +120,7 @@ export const BalanceCard: React.FC = () => {
         </div>
       </div>
 
-      {/* Daily $20 App Visit Gift Claim Strip */}
+      {/* Daily Reward Claim Strip (Scales with Account Upgrade Level) */}
       <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-7 h-7 rounded-lg bg-amber-400/20 text-amber-400 flex items-center justify-center shrink-0">
@@ -118,12 +128,12 @@ export const BalanceCard: React.FC = () => {
           </div>
           <div className="min-w-0">
             <span className="text-xs font-bold text-white block truncate">
-              Daily Visit Trading Gift ($20.00)
+              Daily Reward (${dailyRewardAmount.toFixed(2)}) · Level {currentAccountLevel}
             </span>
             <span className="text-[10px] text-slate-400 block truncate">
               {canClaimDailyGift
-                ? "Available now! Claim $20 free trading balance."
-                : "Claimed for today! Visit tomorrow for your next $20."}
+                ? `Tap to claim $${dailyRewardAmount.toFixed(2)} (Upgrade to increase)`
+                : `Claimed today! Upgrade level to increase daily reward`}
             </span>
           </div>
         </div>
@@ -134,7 +144,7 @@ export const BalanceCard: React.FC = () => {
             className="px-3 py-1.5 bg-[#F5BA31] hover:bg-[#ffc842] active:scale-[0.98] text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-amber-400/20 transition-all cursor-pointer shrink-0"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Claim $20</span>
+            <span>Claim ${dailyRewardAmount}</span>
           </button>
         ) : (
           <span className="px-2.5 py-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-[10px] rounded-lg flex items-center gap-1 shrink-0">

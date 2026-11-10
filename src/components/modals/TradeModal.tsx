@@ -9,10 +9,10 @@ import { formatCurrency } from '../../data/marketData';
 interface TradeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenDeposit: () => void;
+  onOpenUpgrade: () => void;
 }
 
-export const TradeModal: React.FC<TradeModalProps> = ({ isOpen, onClose, onOpenDeposit }) => {
+export const TradeModal: React.FC<TradeModalProps> = ({ isOpen, onClose, onOpenUpgrade }) => {
   const { currentUser, placeQuickTrade, quickTrades } = useAuth();
   const { selectedAsset } = useMarket();
 
@@ -31,7 +31,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({ isOpen, onClose, onOpenD
     if (balance < investment) {
       setStatusMsg({
         type: 'error',
-        text: `Insufficient balance ($${balance.toFixed(2)}). Please deposit funds to invest $${investment}.`
+        text: `Insufficient balance ($${balance.toFixed(2)}) for $${investment} trade.`
       });
       return;
     }
@@ -103,10 +103,10 @@ export const TradeModal: React.FC<TradeModalProps> = ({ isOpen, onClose, onOpenD
             <span>{statusMsg.text}</span>
             {statusMsg.type === 'error' && (
               <button
-                onClick={onOpenDeposit}
-                className="px-2 py-0.5 bg-amber-400 text-slate-950 font-bold rounded text-[11px]"
+                onClick={onOpenUpgrade}
+                className="px-2.5 py-1 bg-amber-400 text-slate-950 font-extrabold rounded-lg text-[11px] cursor-pointer"
               >
-                Deposit
+                Upgrade
               </button>
             )}
           </div>

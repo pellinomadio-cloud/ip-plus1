@@ -7,7 +7,7 @@ import { TrustBanner } from './TrustBanner';
 import { MarketAsset } from '../types';
 
 interface DashboardViewProps {
-  onOpenWallet: () => void;
+  onOpenUpgrade: () => void;
   onOpenWithdraw: () => void;
   onOpenCommunity: () => void;
   onOpenTrade: () => void;
@@ -16,7 +16,7 @@ interface DashboardViewProps {
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
-  onOpenWallet,
+  onOpenUpgrade,
   onOpenWithdraw,
   onOpenCommunity,
   onOpenTrade,
@@ -26,17 +26,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-4 pb-24 text-white">
       {/* Top App Header */}
-      <Header onOpenDeposit={onOpenWallet} onOpenWithdraw={onOpenWithdraw} />
+      <Header onOpenUpgrade={onOpenUpgrade} onOpenWithdraw={onOpenWithdraw} />
 
       {/* Main Total Balance Card */}
       <div className="px-4">
         <BalanceCard />
       </div>
 
-      {/* Action Cards: Funds Wallet | Withdraw | Community | Trade */}
+      {/* Action Cards: Upgrade | Withdraw | Community | Trade */}
       <div className="px-4">
         <ActionCards
-          onOpenWallet={onOpenWallet}
+          onOpenUpgrade={onOpenUpgrade}
           onOpenWithdraw={onOpenWithdraw}
           onOpenCommunity={onOpenCommunity}
           onOpenTrade={onOpenTrade}
@@ -58,4 +58,3 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     </div>
   );
 };
-

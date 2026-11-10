@@ -12,6 +12,7 @@ export interface User {
   phoneNumber?: string;
   lastDailyGiftClaimDate?: string;
   totalClaimedGifts?: number;
+  accountLevel?: number;
 }
 
 
@@ -145,6 +146,7 @@ export interface DepositRequest {
   status: 'pending_review' | 'completed' | 'rejected';
   timestamp: string;
   approvedAt?: string;
+  upgradeLevel?: number;
 }
 
 export type NavTab = 'home' | 'trade' | 'wallet' | 'funds_wallet' | 'withdraw' | 'community' | 'history' | 'settings' | 'admin_dashboard' | 'upgrade' | 'verify_bank';

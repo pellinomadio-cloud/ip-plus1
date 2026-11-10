@@ -10,7 +10,9 @@ import {
   LogOut, 
   ShieldCheck, 
   ArrowUpToLine,
-  ChevronRight
+  ChevronRight,
+  Crown,
+  Sparkles
 } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -22,26 +24,27 @@ interface NavigationDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectTab: (tab: NavTab) => void;
-  onOpenDeposit: () => void;
+  onOpenUpgrade: () => void;
 }
 
 export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   isOpen,
   onClose,
   onSelectTab,
-  onOpenDeposit
+  onOpenUpgrade
 }) => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, currentAccountLevel } = useAuth();
 
   if (!isOpen) return null;
 
   const navItems: { tab: NavTab; label: string; icon: React.ElementType }[] = [
     { tab: 'home', label: 'Dashboard Home', icon: Home },
     { tab: 'trade', label: 'Trading Terminal (Candle Chart)', icon: TrendingUp },
+    { tab: 'upgrade', label: 'Upgrade Account Tier (VIP)', icon: Crown },
     { tab: 'community', label: 'Traders Community & Setups', icon: Users },
     { tab: 'withdraw', label: 'Withdraw Funds (NGN Bank)', icon: ArrowUpToLine },
     { tab: 'verify_bank', label: 'Bank Account Verifier (API)', icon: ShieldCheck },
-    { tab: 'wallet', label: 'Funds Wallet & Custody', icon: Wallet },
+    { tab: 'wallet', label: 'Portfolio & Activity', icon: Wallet },
     { tab: 'history', label: 'Trade & Order History', icon: Clock },
     { tab: 'settings', label: 'Account & Security Settings', icon: Settings }
   ];
@@ -62,18 +65,18 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             <BrandLogo size="md" showTagline={true} />
             <button
               onClick={onClose}
-              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* User Account Info Card */}
-          <div className="p-3.5 bg-[#141B27] border border-slate-800 rounded-2xl space-y-2">
+          <div className="p-3.5 bg-[#141B27] border border-slate-800 rounded-2xl space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400">Live Account</span>
-              <span className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full font-medium">
-                <ShieldCheck className="w-3 h-3" /> Tier-2 Verified
+              <span className="flex items-center gap-1 text-[10px] text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full font-medium">
+                <ShieldCheck className="w-3 h-3" /> Level {currentAccountLevel} Active
               </span>
             </div>
 
@@ -92,11 +95,13 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             <button
               onClick={() => {
                 onClose();
-                onOpenDeposit();
+                onOpenUpgrade();
               }}
-              className="w-full mt-1 py-1.5 bg-[#26A17B] hover:bg-[#208f6d] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors font-mono"
+              className="w-full mt-1 py-2 bg-gradient-to-r from-[#F5BA31] via-amber-400 to-[#F5BA31] hover:from-[#ffc842] hover:to-amber-300 text-slate-950 font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-amber-500/20 cursor-pointer"
             >
-              <span>Funds Wallet</span>
+              <Crown className="w-3.5 h-3.5 fill-slate-950/20 stroke-[2.2]" />
+              <span>Upgrade Account</span>
+              <Sparkles className="w-3 h-3 text-slate-950/80" />
             </button>
           </div>
 
@@ -116,7 +121,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                     onSelectTab(item.tab);
                     onClose();
                   }}
-                  className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/60 text-slate-300 hover:text-white transition-colors text-left text-xs font-semibold group"
+                  className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/60 text-slate-300 hover:text-white transition-colors text-left text-xs font-semibold group cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="w-4 h-4 text-slate-400 group-hover:text-amber-400 transition-colors" />
@@ -136,7 +141,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
               onClose();
               logout();
             }}
-            className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold text-xs transition-colors"
+            className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold text-xs transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>Sign Out</span>

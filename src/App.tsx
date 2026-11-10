@@ -8,13 +8,11 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { MarketProvider, useMarket } from './context/MarketContext';
 import { AuthScreen } from './components/AuthScreen';
 import { DashboardView } from './components/DashboardView';
-import { TradeView } from './components/TradeView';
 import { WalletView } from './components/WalletView';
 import { HistoryView } from './components/HistoryView';
 import { SettingsView } from './components/SettingsView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { BottomNav } from './components/BottomNav';
-import { FundsWalletPage } from './components/FundsWalletPage';
 import { WithdrawPage } from './components/WithdrawPage';
 import { UpgradeAccountPage } from './components/UpgradeAccountPage';
 import { BankAccountVerifierPage } from './components/BankAccountVerifierPage';
@@ -39,10 +37,15 @@ function AppContent() {
   const { isAlertModalOpen, setIsAlertModalOpen } = usePriceAlerts();
 
   const [activeTab, setActiveTab] = useState<NavTab>('home');
+  const [upgradeReturnTab, setUpgradeReturnTab] = useState<NavTab>('home');
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [desktopMode, setDesktopMode] = useState<'mobile' | 'wide'>('mobile');
 
+  const handleOpenUpgrade = (returnTo: NavTab = 'home') => {
+    setUpgradeReturnTab(returnTo);
+    setActiveTab('upgrade');
+  };
 
   // Intercept physical/device back button presses
   // Returns the user to the main dashboard balance view ('home') from any page instead of leaving the app
@@ -148,7 +151,7 @@ function AppContent() {
         {/* Dynamic Screen Content based on Active Tab */}
         {activeTab === 'home' && (
           <DashboardView
-            onOpenWallet={() => setActiveTab('funds_wallet')}
+            onOpenUpgrade={() => handleOpenUpgrade('home')}
             onOpenWithdraw={() => setActiveTab('withdraw')}
             onOpenCommunity={() => setActiveTab('community')}
             onOpenTrade={handleOpenTradeTab}
@@ -157,18 +160,10 @@ function AppContent() {
           />
         )}
 
-        {activeTab === 'funds_wallet' && (
-          <FundsWalletPage
-            onBack={() => setActiveTab('home')}
-            onGoToTrade={() => setActiveTab('trade')}
-          />
-        )}
-
         {activeTab === 'withdraw' && (
           <WithdrawPage
             onBack={() => setActiveTab('home')}
-            onOpenDeposit={() => setActiveTab('funds_wallet')}
-            onOpenUpgrade={() => setActiveTab('upgrade')}
+            onOpenUpgrade={() => handleOpenUpgrade('withdraw')}
             onOpenVerifier={() => setActiveTab('verify_bank')}
           />
         )}
@@ -182,8 +177,8 @@ function AppContent() {
 
         {activeTab === 'upgrade' && (
           <UpgradeAccountPage
-            onBack={() => setActiveTab('withdraw')}
-            onSuccessReturn={() => setActiveTab('withdraw')}
+            onBack={() => setActiveTab(upgradeReturnTab)}
+            onSuccessReturn={() => setActiveTab(upgradeReturnTab)}
           />
         )}
 
@@ -198,7 +193,7 @@ function AppContent() {
         {activeTab === 'trade' && (
           <TradingTerminalPage
             onOpenMenu={() => setIsDrawerOpen(true)}
-            onOpenDeposit={() => setActiveTab('funds_wallet')}
+            onOpenUpgrade={() => handleOpenUpgrade('trade')}
           />
         )}
 
@@ -208,7 +203,7 @@ function AppContent() {
               <h2 className="text-lg font-bold text-white">Portfolio & Wallet</h2>
             </div>
             <WalletView
-              onOpenDeposit={() => setActiveTab('funds_wallet')}
+              onOpenUpgrade={() => handleOpenUpgrade('wallet')}
               onOpenWithdraw={() => setActiveTab('withdraw')}
             />
           </div>
@@ -239,7 +234,7 @@ function AppContent() {
         {/* Fixed Bottom Navigation Bar */}
         <BottomNav
           activeTab={
-            activeTab === 'funds_wallet' || activeTab === 'withdraw' || activeTab === 'upgrade' || activeTab === 'verify_bank'
+            activeTab === 'withdraw' || activeTab === 'upgrade' || activeTab === 'verify_bank'
               ? 'wallet'
               : activeTab === 'community'
               ? 'home'
@@ -255,9 +250,9 @@ function AppContent() {
       <TradeModal
         isOpen={isTradeModalOpen}
         onClose={() => setIsTradeModalOpen(false)}
-        onOpenDeposit={() => {
+        onOpenUpgrade={() => {
           setIsTradeModalOpen(false);
-          setActiveTab('funds_wallet');
+          handleOpenUpgrade('home');
         }}
       />
 
@@ -268,9 +263,9 @@ function AppContent() {
           setActiveTab(tab);
           setIsDrawerOpen(false);
         }}
-        onOpenDeposit={() => {
+        onOpenUpgrade={() => {
           setIsDrawerOpen(false);
-          setActiveTab('funds_wallet');
+          handleOpenUpgrade(activeTab);
         }}
       />
 
@@ -303,4 +298,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-
